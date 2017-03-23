@@ -1,42 +1,36 @@
 package stardict_test
 
 import (
-	"bufio"
-	"fmt"
-	"os"
+	"path"
+	"testing"
 
 	"github.com/kapmahc/stardict"
 )
 
-func main() {
+func TestDic(t *testing.T) {
+	root := path.Join("tmp", "dic")
+
 	// init dictionary with path to dictionary files and name of dictionary
-	dict, err := stardict.NewDictionary("/Users/dyatlov/Downloads/stardict-babylon-Babylon_English_Arabic-2.4.2", "Babylon_English_Arabic")
+	dict, err := stardict.NewDictionary(
+		path.Join(root, "stardict-cdict-gb-2.4.2"),
+		"cdict-gb",
+	)
 
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		item, _ := reader.ReadString('\n') // Prompt user for a word to translate
-
-		item = item[:len(item)-1]
-
-		if item == "" { // if user entered nothing - then finish
-			break
-		}
-
-		senses := dict.Translate(item) // get translations
-
+	for _, kw := range []string{"one", "two", "three"} {
+		senses := dict.Translate(kw) // get translations
 		for i, seq := range senses { // for each translation analyze returned parts
-			fmt.Printf("Sense %d\n", i+1)
-			for j, t := range seq.Parts { // write each part contents to user
-				fmt.Printf("Part %d:\n%c\n%s\n", j+1, t.Type, t.Data)
+			t.Logf("Sense %d\n", i+1)
+			for j, p := range seq.Parts { // write each part contents to user
+				t.Logf("Part %d:\n%c\n%s\n", j+1, p.Type, p.Data)
 			}
 		}
 
 		if len(senses) == 0 {
-			fmt.Println("Nothing found :(")
+			t.Log("Nothing found :(")
 		}
 	}
 }
