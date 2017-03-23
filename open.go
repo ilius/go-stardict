@@ -1,7 +1,6 @@
 package stardict
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -19,7 +18,6 @@ func Open(d string) ([]*Dictionary, error) {
 		ext := ".ifo"
 		name := info.Name()
 		if filepath.Ext(info.Name()) == ext {
-			fmt.Println(filepath.Dir(path), name[:len(name)-len(ext)])
 			dir, err := NewDictionary(filepath.Dir(path), name[:len(name)-len(ext)])
 			if err != nil {
 				return err
