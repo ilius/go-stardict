@@ -3,9 +3,9 @@ GO STARDICT
 
 To download and install this package run:
 
-`go get github.com/dyatlov/gostardict/stardict`
+`go get -u https://github.com/kapmahc/stardict.git`
 
-Source docs: http://godoc.org/github.com/dyatlov/gostardict/stardict
+Source docs: http://godoc.org/github.com/kapmahc/stardict.git
 
 Disclaimer
 ---
@@ -13,7 +13,7 @@ The code is currently undocumented, and is certainly **not idiomatic Go**. Pull 
 
 Samples
 ---
-Sample code can be found in [`gostardict/samples`](https://github.com/dyatlov/gostardict/tree/master/samples).
+Sample code can be found in [`dict_test.go`](https://github.com/dyatlov/gostardict/tree/master/dict_test.go).
 
 Project Overview
 ---

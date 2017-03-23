@@ -1,11 +1,11 @@
-package main
+package stardict_test
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 
-	"github.com/dyatlov/gostardict/stardict"
+	"github.com/kapmahc/stardict"
 )
 
 func main() {
