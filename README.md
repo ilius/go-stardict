@@ -1,16 +1,8 @@
----
->-
-  The code is currently undocumented, and is certainly **not idiomatic Go**.
-  Pull requests are welcome!
-
-  Samples
----
-
 # GO STARDICT
 
 To download and install this package run:
 
-`go get -u https://github.com/kapmahc/stardict`
+`go get -u github.com/kapmahc/stardict`
 
 Source docs: <http://godoc.org/github.com/kapmahc/stardict>
 
@@ -32,19 +24,9 @@ Not tested but should be working in theory (I didn't find dictionaries with thos
 - 64bit offsets
 - multi typed dictionary fields
 
-## Dictionary Functions
 
-`func NewDictionary(path string, name string) (*Dictionary, error)` - returns `gostardict.Dictionary` struct. `path` - path to dictionary files, `name` - name of dictionary to parse
+## Thanks
 
-`func (d Dictionary) GetBookName() string` - returns dictionary' book name (from ifo file)
-
-`func (d Dictionary) GetWordCount() uint64` - returns dictionary' word count (from ifo file)
-
-## Additional links
-- Format for StarDict dictionary files: <http://www.stardict.org/StarDictFileFormat>
-- Dictionaries: <http://download.huzheng.org/>
-
-
-## Work Opportunities
-
-If you need a Golang developer feel free to contact with me :)
+- [Format for StarDict dictionary files](http://www.stardict.org/StarDictFileFormat)
+- [Dictionaries](http://download.huzheng.org/)
+- [GO STARDICT](https://github.com/dyatlov/gostardict)
