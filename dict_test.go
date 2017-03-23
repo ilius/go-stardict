@@ -10,6 +10,14 @@ import (
 func TestDic(t *testing.T) {
 	root := path.Join("tmp", "dic")
 
+	if dict, err := stardict.Open(root); err == nil {
+		for _, d := range dict {
+			t.Logf("%s(%d)", d.GetBookName(), d.GetWordCount())
+		}
+	} else {
+		t.Fatal(err)
+	}
+
 	// init dictionary with path to dictionary files and name of dictionary
 	dict, err := stardict.NewDictionary(
 		path.Join(root, "stardict-cdict-gb-2.4.2"),
