@@ -1,3 +1,3 @@
-module github.com/kapmahc/stardict
+module github.com/ilius/go-stardict
 
 go 1.14

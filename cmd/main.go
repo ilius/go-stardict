@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/kapmahc/stardict"
+	stardict "github.com/ilius/go-stardict"
 )
 
 func main() {
