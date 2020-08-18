@@ -14,7 +14,7 @@ The project was started as an attempt to read stardict dictionaries in language 
 
 Current limitations:
 
-- Whole dictionary and index are fully loaded into memory for fast random access
+- Index file is loaded into memory for fast random access
 - DictZip format is not supported, it is processed as a simple GZip format (means that no random blocks access is supported as in DictZip)
 - Syn files are not processed
 - There's no recovering from errors (means that dictionaries should be well formed)
