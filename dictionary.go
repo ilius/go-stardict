@@ -56,7 +56,7 @@ func (d Dictionary) translate(senses []*Sense) (items []*Translation) {
 	return
 }
 
-// Search all translations for keywords that contain the query
+// SearchContains: search all translations for keywords that contain the query
 func (d Dictionary) SearchContains(query string) []*SearchResult {
 	results := []*SearchResult{}
 	for keyword, senses := range d.idx.items {
@@ -72,6 +72,61 @@ func (d Dictionary) SearchContains(query string) []*SearchResult {
 		results = append(results, result)
 	}
 	return results
+}
+
+// SearchPrefix: search all translations for keywords that start with query
+func (d Dictionary) SearchPrefix(query string) []*SearchResult {
+	results := []*SearchResult{}
+	for keyword, senses := range d.idx.items {
+		if !strings.HasPrefix(keyword, query) {
+			continue
+		}
+		result := &SearchResult{
+			Keyword: keyword,
+		}
+		for _, item := range d.translate(senses) {
+			result.Items = append(result.Items, item.Parts...)
+		}
+		results = append(results, result)
+	}
+	return results
+}
+
+// SearchAuto: first try an exact match
+// then search all translations for keywords that contain the query
+// but sort the one that have it as prefix first
+func (d Dictionary) SearchAuto(query string) []*SearchResult {
+	results1 := []*SearchResult{}
+	results2 := []*SearchResult{}
+	senses, found := d.idx.items[query]
+	if found {
+		result := &SearchResult{
+			Keyword: query,
+		}
+		for _, item := range d.translate(senses) {
+			result.Items = append(result.Items, item.Parts...)
+		}
+		results1 = append(results1, result)
+	}
+	for keyword, senses := range d.idx.items {
+		prefix := strings.HasPrefix(keyword, query)
+		contains := strings.Contains(keyword, query)
+		if !(prefix || contains) {
+			continue
+		}
+		result := &SearchResult{
+			Keyword: keyword,
+		}
+		for _, item := range d.translate(senses) {
+			result.Items = append(result.Items, item.Parts...)
+		}
+		if prefix {
+			results1 = append(results1, result)
+		} else {
+			results2 = append(results2, result)
+		}
+	}
+	return append(results1, results2...)
 }
 
 func (d Dictionary) translateWithSametypesequence(data []byte) (items []*TranslationItem) {
