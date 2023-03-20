@@ -43,13 +43,11 @@ func ReadInfo(filename string) (info *Info, err error) {
 	}
 
 	version, err := r.ReadString('\n')
-
 	if err != nil {
 		return
 	}
 
 	kn, kv, err := decodeOption(version[:len(version)-1])
-
 	if err != nil {
 		return
 	}

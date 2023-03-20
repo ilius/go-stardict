@@ -36,7 +36,6 @@ func (idx Idx) Get(item string) []*Sense {
 // ReadIndex reads dictionary index into a memory and returns in-memory index structure
 func ReadIndex(filename string, info *Info) (idx *Idx, err error) {
 	data, err := ioutil.ReadFile(filename)
-
 	// unable to read index
 	if err != nil {
 		return

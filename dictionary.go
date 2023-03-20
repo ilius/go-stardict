@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Translation contains translation items
@@ -19,6 +20,11 @@ type TranslationItem struct {
 	Data []byte
 }
 
+type SearchResult struct {
+	Keyword string
+	Items   []*TranslationItem
+}
+
 // Dictionary stardict dictionary
 type Dictionary struct {
 	dict *Dict
@@ -29,7 +35,10 @@ type Dictionary struct {
 // Translate translates given item
 func (d Dictionary) Translate(item string) (items []*Translation) {
 	senses := d.idx.Get(item)
+	return d.translate(senses)
+}
 
+func (d Dictionary) translate(senses []*Sense) (items []*Translation) {
 	for _, seq := range senses {
 		sense := d.dict.GetSequence(seq.Offset, seq.Size)
 
@@ -45,6 +54,24 @@ func (d Dictionary) Translate(item string) (items []*Translation) {
 	}
 
 	return
+}
+
+// Search all translations for keywords that contain the query
+func (d Dictionary) SearchContains(query string) []*SearchResult {
+	results := []*SearchResult{}
+	for keyword, senses := range d.idx.items {
+		if !strings.Contains(keyword, query) {
+			continue
+		}
+		result := &SearchResult{
+			Keyword: keyword,
+		}
+		for _, item := range d.translate(senses) {
+			result.Items = append(result.Items, item.Parts...)
+		}
+		results = append(results, result)
+	}
+	return results
 }
 
 func (d Dictionary) translateWithSametypesequence(data []byte) (items []*TranslationItem) {
@@ -158,19 +185,16 @@ func NewDictionary(path string, name string) (*Dictionary, error) {
 	}
 
 	info, err := ReadInfo(infoPath)
-
 	if err != nil {
 		return nil, err
 	}
 
 	idx, err := ReadIndex(idxPath, info)
-
 	if err != nil {
 		return nil, err
 	}
 
 	dict, err := ReadDict(dictPath, info)
-
 	if err != nil {
 		return nil, err
 	}

@@ -23,7 +23,6 @@ func TestDic(t *testing.T) {
 		path.Join(root, "stardict-cdict-gb-2.4.2"),
 		"cdict-gb",
 	)
-
 	if err != nil {
 		t.Fatal(err)
 	}
