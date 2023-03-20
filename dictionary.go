@@ -98,12 +98,12 @@ func (d Dictionary) SearchPrefix(query string) []*SearchResult {
 func (d Dictionary) SearchAuto(query string) []*SearchResult {
 	results1 := []*SearchResult{}
 	results2 := []*SearchResult{}
-	senses, found := d.idx.items[query]
+	exactSenses, found := d.idx.items[query]
 	if found {
 		result := &SearchResult{
 			Keyword: query,
 		}
-		for _, item := range d.translate(senses) {
+		for _, item := range d.translate(exactSenses) {
 			result.Items = append(result.Items, item.Parts...)
 		}
 		results1 = append(results1, result)
@@ -112,6 +112,9 @@ func (d Dictionary) SearchAuto(query string) []*SearchResult {
 		prefix := strings.HasPrefix(keyword, query)
 		contains := strings.Contains(keyword, query)
 		if !(prefix || contains) {
+			continue
+		}
+		if keyword == query {
 			continue
 		}
 		result := &SearchResult{
