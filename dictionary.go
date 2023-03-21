@@ -92,10 +92,40 @@ func (d Dictionary) SearchPrefix(query string) []*SearchResult {
 	return results
 }
 
+func (d Dictionary) searchVeryShort(query string) []*SearchResult {
+	terms := []string{query}
+	queryLower := strings.ToLower(query)
+	if queryLower != query {
+		terms = append(terms, queryLower)
+	}
+	queryUpper := strings.ToUpper(query)
+	if queryUpper != query {
+		terms = append(terms, queryUpper)
+	}
+	results := []*SearchResult{}
+	for _, term := range terms {
+		senses := d.idx.Get(term)
+		if senses == nil {
+			continue
+		}
+		result := &SearchResult{
+			Keyword: term,
+		}
+		for _, item := range d.translate(senses) {
+			result.Items = append(result.Items, item.Parts...)
+		}
+		results = append(results, result)
+	}
+	return results
+}
+
 // SearchAuto: first try an exact match
 // then search all translations for keywords that contain the query
 // but sort the one that have it as prefix first
 func (d Dictionary) SearchAuto(query string) []*SearchResult {
+	if len(query) < 2 {
+		return d.searchVeryShort(query)
+	}
 	results1 := []*SearchResult{}
 	results2 := []*SearchResult{}
 	exactSenses, found := d.idx.items[query]
