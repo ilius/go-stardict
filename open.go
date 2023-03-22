@@ -24,6 +24,7 @@ func Open(d string) ([]*Dictionary, error) {
 		fmt.Printf("Loading %#v\n", path)
 		dir, err := NewDictionary(filepath.Dir(path), name[:len(name)-len(ext)])
 		if err != nil {
+			fmt.Println(err)
 			return err
 		}
 		items = append(items, dir)
