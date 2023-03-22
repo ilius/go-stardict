@@ -38,16 +38,16 @@ func (d Dictionary) Translate(item string) (items []*Translation) {
 	return d.translate(senses)
 }
 
-func (d Dictionary) translate(senses []*Sense) (items []*Translation) {
-	for _, seq := range senses {
-		sense := d.dict.GetSequence(seq.Offset, seq.Size)
+func (d Dictionary) translate(senses []Sense) (items []*Translation) {
+	for _, sense := range senses {
+		data := d.dict.GetSequence(sense[0], sense[1])
 
 		var transItems []*TranslationItem
 
 		if _, ok := d.info.Options["sametypesequence"]; ok {
-			transItems = d.translateWithSametypesequence(sense)
+			transItems = d.translateWithSametypesequence(data)
 		} else {
-			transItems = d.translateWithoutSametypesequence(sense)
+			transItems = d.translateWithoutSametypesequence(data)
 		}
 
 		items = append(items, &Translation{Parts: transItems})
