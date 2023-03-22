@@ -6,9 +6,17 @@ import (
 	"path/filepath"
 )
 
+func isDir(pathStr string) bool {
+	stat, _ := os.Stat(pathStr)
+	if stat == nil {
+		return false
+	}
+	return stat.IsDir()
+}
+
 // Open open directories
 func Open(d string) ([]*Dictionary, error) {
-	var items []*Dictionary
+	var dicList []*Dictionary
 	const ext = ".ifo"
 	filepath.Walk(d, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -22,13 +30,18 @@ func Open(d string) ([]*Dictionary, error) {
 			return nil
 		}
 		fmt.Printf("Loading %#v\n", path)
-		dir, err := NewDictionary(filepath.Dir(path), name[:len(name)-len(ext)])
+		dirPath := filepath.Dir(path)
+		dic, err := NewDictionary(dirPath, name[:len(name)-len(ext)])
 		if err != nil {
 			fmt.Println(err)
 			return err
 		}
-		items = append(items, dir)
+		resDir := filepath.Join(dirPath, "res")
+		if isDir(resDir) {
+			dic.resDir = resDir
+		}
+		dicList = append(dicList, dic)
 		return nil
 	})
-	return items, nil
+	return dicList, nil
 }

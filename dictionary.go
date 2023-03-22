@@ -30,6 +30,12 @@ type Dictionary struct {
 	dict *Dict
 	idx  *Idx
 	info *Info
+
+	resDir string
+}
+
+func (d Dictionary) ResourceDir() string {
+	return d.resDir
 }
 
 // Translate translates given item
