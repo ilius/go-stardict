@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 func isDir(pathStr string) bool {
@@ -39,9 +41,18 @@ func Open(d string) ([]*Dictionary, error) {
 		resDir := filepath.Join(dirPath, "res")
 		if isDir(resDir) {
 			dic.resDir = resDir
+			dic.resURL = "file://" + pathToUnix(resDir)
+
 		}
 		dicList = append(dicList, dic)
 		return nil
 	})
 	return dicList, nil
+}
+
+func pathToUnix(pathStr string) string {
+	if runtime.GOOS != "windows" {
+		return pathStr
+	}
+	return "/" + strings.Replace(pathStr, `\`, `/`, -1)
 }

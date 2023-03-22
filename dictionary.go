@@ -32,10 +32,15 @@ type Dictionary struct {
 	info *Info
 
 	resDir string
+	resURL string
 }
 
 func (d *Dictionary) ResourceDir() string {
 	return d.resDir
+}
+
+func (d *Dictionary) ResourceURL() string {
+	return d.resURL
 }
 
 // Translate translates given item
