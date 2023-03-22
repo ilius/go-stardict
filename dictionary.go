@@ -34,17 +34,17 @@ type Dictionary struct {
 	resDir string
 }
 
-func (d Dictionary) ResourceDir() string {
+func (d *Dictionary) ResourceDir() string {
 	return d.resDir
 }
 
 // Translate translates given item
-func (d Dictionary) Translate(item string) (items []*Translation) {
+func (d *Dictionary) Translate(item string) (items []*Translation) {
 	senses := d.idx.Get(item)
 	return d.translate(senses)
 }
 
-func (d Dictionary) translate(senses []Sense) (items []*Translation) {
+func (d *Dictionary) translate(senses []Sense) (items []*Translation) {
 	for _, sense := range senses {
 		data := d.dict.GetSequence(sense[0], sense[1])
 
@@ -63,7 +63,7 @@ func (d Dictionary) translate(senses []Sense) (items []*Translation) {
 }
 
 // SearchContains: search all translations for keywords that contain the query
-func (d Dictionary) SearchContains(query string) []*SearchResult {
+func (d *Dictionary) SearchContains(query string) []*SearchResult {
 	results := []*SearchResult{}
 	for keyword, senses := range d.idx.items {
 		if !strings.Contains(keyword, query) {
@@ -81,7 +81,7 @@ func (d Dictionary) SearchContains(query string) []*SearchResult {
 }
 
 // SearchPrefix: search all translations for keywords that start with query
-func (d Dictionary) SearchPrefix(query string) []*SearchResult {
+func (d *Dictionary) SearchPrefix(query string) []*SearchResult {
 	results := []*SearchResult{}
 	for keyword, senses := range d.idx.items {
 		if !strings.HasPrefix(keyword, query) {
@@ -98,7 +98,7 @@ func (d Dictionary) SearchPrefix(query string) []*SearchResult {
 	return results
 }
 
-func (d Dictionary) searchVeryShort(query string) []*SearchResult {
+func (d *Dictionary) searchVeryShort(query string) []*SearchResult {
 	terms := []string{query}
 	queryLower := strings.ToLower(query)
 	if queryLower != query {
@@ -128,7 +128,7 @@ func (d Dictionary) searchVeryShort(query string) []*SearchResult {
 // SearchAuto: first try an exact match
 // then search all translations for keywords that contain the query
 // but sort the one that have it as prefix first
-func (d Dictionary) SearchAuto(query string) []*SearchResult {
+func (d *Dictionary) SearchAuto(query string) []*SearchResult {
 	if len(query) < 2 {
 		return d.searchVeryShort(query)
 	}
@@ -168,7 +168,7 @@ func (d Dictionary) SearchAuto(query string) []*SearchResult {
 	return append(results1, results2...)
 }
 
-func (d Dictionary) translateWithSametypesequence(data []byte) (items []*TranslationItem) {
+func (d *Dictionary) translateWithSametypesequence(data []byte) (items []*TranslationItem) {
 	seq := d.info.Options["sametypesequence"]
 
 	seqLen := len(seq)
@@ -201,7 +201,7 @@ func (d Dictionary) translateWithSametypesequence(data []byte) (items []*Transla
 	return
 }
 
-func (d Dictionary) translateWithoutSametypesequence(data []byte) (items []*TranslationItem) {
+func (d *Dictionary) translateWithoutSametypesequence(data []byte) (items []*TranslationItem) {
 	var dataPos int
 	dataSize := len(data)
 
@@ -236,18 +236,18 @@ func (d Dictionary) translateWithoutSametypesequence(data []byte) (items []*Tran
 }
 
 // GetBookName returns book name
-func (d Dictionary) GetBookName() string {
+func (d *Dictionary) GetBookName() string {
 	return d.info.Options["bookname"]
 }
 
 // GetWordCount returns number of words in the dictionary
-func (d Dictionary) GetWordCount() uint64 {
+func (d *Dictionary) GetWordCount() uint64 {
 	num, _ := strconv.ParseUint(d.info.Options["wordcount"], 10, 64)
 
 	return num
 }
 
-func (d Dictionary) IterKeywords(f func(string)) {
+func (d *Dictionary) IterKeywords(f func(string)) {
 	for keyword := range d.idx.items {
 		f(keyword)
 	}
