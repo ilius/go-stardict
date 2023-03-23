@@ -139,8 +139,10 @@ func (d *Dictionary) SearchAuto(query string) []*SearchResult {
 	}
 	results1 := []*SearchResult{}
 	results2 := []*SearchResult{}
-	exactSenses, found := d.idx.items[query]
-	if found {
+	keywordMap := map[string]bool{}
+	exactSenses, exactFound := d.idx.items[query]
+	if exactFound {
+		keywordMap[query] = true
 		result := &SearchResult{
 			Keyword: query,
 		}
@@ -149,15 +151,32 @@ func (d *Dictionary) SearchAuto(query string) []*SearchResult {
 		}
 		results1 = append(results1, result)
 	}
+	queryLower := strings.ToLower(query)
+	for _, keyword := range d.idx.itemsLower[queryLower] {
+		if keywordMap[keyword] {
+			continue
+		}
+		keywordMap[keyword] = true
+		senses := d.idx.Get(keyword)
+		result := &SearchResult{
+			Keyword: query,
+		}
+		for _, item := range d.translate(senses) {
+			result.Items = append(result.Items, item.Parts...)
+		}
+		results1 = append(results1, result)
+	}
 	for keyword, senses := range d.idx.items {
-		prefix := strings.HasPrefix(keyword, query)
-		contains := strings.Contains(keyword, query)
+		keywordLower := strings.ToLower(keyword)
+		prefix := strings.HasPrefix(keywordLower, queryLower)
+		contains := strings.Contains(keywordLower, queryLower)
 		if !(prefix || contains) {
 			continue
 		}
-		if keyword == query {
+		if keywordMap[keyword] {
 			continue
 		}
+		// keywordMap[keyword] = true
 		result := &SearchResult{
 			Keyword: keyword,
 		}

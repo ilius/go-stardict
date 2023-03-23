@@ -3,6 +3,7 @@ package stardict
 import (
 	"encoding/binary"
 	"io/ioutil"
+	"strings"
 )
 
 // Sense has information belonging to single item position in dictionary
@@ -11,18 +12,25 @@ type Sense = [2]uint64
 // Idx implements an in-memory index for a dictionary
 type Idx struct {
 	items map[string][]Sense
+
+	itemsLower map[string][]string
 }
 
 // NewIdx initializes idx struct
 func NewIdx() *Idx {
 	idx := new(Idx)
 	idx.items = make(map[string][]Sense)
+	idx.itemsLower = make(map[string][]string)
 	return idx
 }
 
 // Add adds an item to in-memory index
 func (idx *Idx) Add(item string, offset uint64, size uint64) {
 	idx.items[item] = append(idx.items[item], Sense{offset, size})
+	lower := strings.ToLower(item)
+	if lower != item {
+		idx.itemsLower[lower] = append(idx.itemsLower[lower], item)
+	}
 }
 
 // Get gets all translations for an item
