@@ -2,7 +2,12 @@ package stardict
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
+
+	"database/sql"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // Sense has information belonging to single item position in dictionary
@@ -11,23 +16,102 @@ type Sense = [2]uint64
 // Idx implements an in-memory index for a dictionary
 type Idx struct {
 	items map[string][]Sense
+
+	db *sql.DB
 }
 
 // NewIdx initializes idx struct
 func NewIdx() *Idx {
 	idx := new(Idx)
 	idx.items = make(map[string][]Sense)
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.Exec("CREATE TABLE idx (keyword TEXT, offset INTEGER, size INTEGER);")
+	if err != nil {
+		panic(err)
+	}
+	idx.db = db
 	return idx
 }
 
 // Add adds an item to in-memory index
 func (idx *Idx) Add(item string, offset uint64, size uint64) {
-	idx.items[item] = append(idx.items[item], Sense{offset, size})
+	_, err := idx.db.Exec(
+		"insert into idx (keyword, offset, size) values (?, ?, ?)",
+		item, offset, size,
+	)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Get gets all translations for an item
 func (idx Idx) Get(item string) []Sense {
-	return idx.items[item]
+	rows, err := idx.db.Query("select offset, size from idx where keyword = ?", item)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	defer rows.Close()
+	senses := []Sense{}
+	for rows.Next() {
+		var offset int
+		var size int
+		err = rows.Scan(&offset, &size)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		senses = append(senses, Sense{uint64(offset), uint64(size)})
+	}
+	err = rows.Err()
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return senses
+}
+
+type IdxSearchResult struct {
+	Keyword string
+	Offset  uint64
+	Size    uint64
+}
+
+func (idx Idx) search(cond string, arg string) []*IdxSearchResult {
+	rows, err := idx.db.Query(
+		"select keyword, offset, size from idx where "+cond,
+		arg,
+	)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	defer rows.Close()
+	results := []*IdxSearchResult{}
+	for rows.Next() {
+		var keyword string
+		var offset int
+		var size int
+		err = rows.Scan(&keyword, &offset, &size)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		results = append(results, &IdxSearchResult{
+			Keyword: keyword,
+			Offset:  uint64(offset),
+			Size:    uint64(size),
+		})
+	}
+	err = rows.Err()
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return results
 }
 
 // ReadIndex reads dictionary index into a memory and returns in-memory index structure
@@ -102,6 +186,11 @@ func ReadIndex(filename string, info *Info) (idx *Idx, err error) {
 				aIdx++
 			}
 		}
+	}
+
+	_, err = idx.db.Exec("CREATE INDEX keyword_idx ON idx(keyword);")
+	if err != nil {
+		return nil, err
 	}
 
 	return idx, err

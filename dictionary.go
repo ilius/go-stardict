@@ -68,40 +68,40 @@ func (d *Dictionary) translate(senses []Sense) (items []*Translation) {
 }
 
 // SearchContains: search all translations for keywords that contain the query
-func (d *Dictionary) SearchContains(query string) []*SearchResult {
-	results := []*SearchResult{}
-	for keyword, senses := range d.idx.items {
-		if !strings.Contains(keyword, query) {
-			continue
-		}
-		result := &SearchResult{
-			Keyword: keyword,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		results = append(results, result)
-	}
-	return results
-}
+// func (d *Dictionary) SearchContains(query string) []*SearchResult {
+// 	results := []*SearchResult{}
+// 	for keyword, senses := range d.idx.items {
+// 		if !strings.Contains(keyword, query) {
+// 			continue
+// 		}
+// 		result := &SearchResult{
+// 			Keyword: keyword,
+// 		}
+// 		for _, item := range d.translate(senses) {
+// 			result.Items = append(result.Items, item.Parts...)
+// 		}
+// 		results = append(results, result)
+// 	}
+// 	return results
+// }
 
-// SearchPrefix: search all translations for keywords that start with query
-func (d *Dictionary) SearchPrefix(query string) []*SearchResult {
-	results := []*SearchResult{}
-	for keyword, senses := range d.idx.items {
-		if !strings.HasPrefix(keyword, query) {
-			continue
-		}
-		result := &SearchResult{
-			Keyword: keyword,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		results = append(results, result)
-	}
-	return results
-}
+// // SearchPrefix: search all translations for keywords that start with query
+// func (d *Dictionary) SearchPrefix(query string) []*SearchResult {
+// 	results := []*SearchResult{}
+// 	for keyword, senses := range d.idx.items {
+// 		if !strings.HasPrefix(keyword, query) {
+// 			continue
+// 		}
+// 		result := &SearchResult{
+// 			Keyword: keyword,
+// 		}
+// 		for _, item := range d.translate(senses) {
+// 			result.Items = append(result.Items, item.Parts...)
+// 		}
+// 		results = append(results, result)
+// 	}
+// 	return results
+// }
 
 func (d *Dictionary) searchVeryShort(query string) []*SearchResult {
 	terms := []string{query}
@@ -137,40 +137,41 @@ func (d *Dictionary) SearchAuto(query string) []*SearchResult {
 	if len(query) < 2 {
 		return d.searchVeryShort(query)
 	}
-	results1 := []*SearchResult{}
-	results2 := []*SearchResult{}
-	exactSenses, found := d.idx.items[query]
-	if found {
+	keywords := map[string]bool{}
+	results := []*SearchResult{}
+	exactSenses := d.idx.Get(query)
+	if len(exactSenses) > 0 {
 		result := &SearchResult{
 			Keyword: query,
 		}
 		for _, item := range d.translate(exactSenses) {
 			result.Items = append(result.Items, item.Parts...)
 		}
-		results1 = append(results1, result)
+		results = append(results, result)
+		keywords[query] = true
 	}
-	for keyword, senses := range d.idx.items {
-		prefix := strings.HasPrefix(keyword, query)
-		contains := strings.Contains(keyword, query)
-		if !(prefix || contains) {
-			continue
-		}
-		if keyword == query {
-			continue
-		}
-		result := &SearchResult{
-			Keyword: keyword,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		if prefix {
-			results1 = append(results1, result)
-		} else {
-			results2 = append(results2, result)
+	for _, pattern := range []string{
+		query + "%",
+		"%" + query + "%",
+	} {
+		for _, idxRes := range d.idx.search("keyword LIKE ?", pattern) {
+			if keywords[idxRes.Keyword] {
+				continue
+			}
+			keywords[idxRes.Keyword] = true
+			result := &SearchResult{
+				Keyword: idxRes.Keyword,
+			}
+			for _, item := range d.translate([]Sense{[2]uint64{
+				idxRes.Offset,
+				idxRes.Size,
+			}}) {
+				result.Items = append(result.Items, item.Parts...)
+			}
+			results = append(results, result)
 		}
 	}
-	return append(results1, results2...)
+	return results
 }
 
 func (d *Dictionary) translateWithSametypesequence(data []byte) (items []*TranslationItem) {
@@ -252,11 +253,11 @@ func (d *Dictionary) GetWordCount() uint64 {
 	return num
 }
 
-func (d *Dictionary) IterKeywords(f func(string)) {
-	for keyword := range d.idx.items {
-		f(keyword)
-	}
-}
+// func (d *Dictionary) IterKeywords(f func(string)) {
+// 	for keyword := range d.idx.items {
+// 		f(keyword)
+// 	}
+// }
 
 // NewDictionary returns a new Dictionary
 // path - path to dictionary files
