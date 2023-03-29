@@ -5,14 +5,49 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strconv"
 	"strings"
+)
+
+const (
+	I_bookname    = "bookname"
+	I_wordcount   = "wordcount"
+	I_description = "description"
+	I_idxfilesize = "idxfilesize"
 )
 
 // Info contains dictionary options
 type Info struct {
-	Version string
-	Is64    bool
-	Options map[string]string
+	Options  map[string]string
+	Version  string
+	Is64     bool
+	Disabled bool
+}
+
+func (info Info) BookName() string {
+	return info.Options[I_bookname]
+}
+
+// WordCount returns number of words in the dictionary
+func (info Info) WordCount() uint64 {
+	num, _ := strconv.ParseUint(info.Options[I_wordcount], 10, 64)
+	return num
+}
+
+func (info Info) Description() string {
+	return info.Options[I_description]
+}
+
+func (info Info) IndexFileSize() uint64 {
+	num, _ := strconv.ParseUint(info.Options[I_idxfilesize], 10, 64)
+	return num
+}
+
+func (info Info) MaxIdxBytes() int {
+	if info.Is64 {
+		return 8
+	}
+	return 4
 }
 
 func decodeOption(str string) (key string, value string, err error) {

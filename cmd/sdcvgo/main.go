@@ -15,7 +15,10 @@ func main() {
 		panic(err)
 	}
 	dicDir := path.Join(homeDir, ".stardict", "dic")
-	dics, err := stardict.Open(dicDir)
+	dics, err := stardict.Open(
+		[]string{dicDir},
+		map[string]int{},
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -24,16 +27,16 @@ func main() {
 			if dicI > 0 {
 				fmt.Printf("\n")
 			}
-			transList := dic.Translate(word)
-			if len(transList) > 0 {
-				fmt.Printf("--> query %#v from %s\n", word, dic.GetBookName())
+			results := dic.Search(word, 20)
+			if len(results) > 0 {
+				fmt.Printf("--> query %#v from %s\n", word, dic.BookName())
 			}
-			for transI, trans := range transList {
-				if transI > 0 {
+			for index, result := range results {
+				if index > 0 {
 					fmt.Printf("----------\n")
 				}
-				for _, part := range trans.Parts {
-					fmt.Printf("%v\n", strings.TrimSpace(string(part.Data)))
+				for _, item := range result.Items {
+					fmt.Printf("%v\n", strings.TrimSpace(string(item.Data)))
 				}
 				fmt.Printf("\n")
 			}

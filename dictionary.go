@@ -3,10 +3,15 @@ package stardict
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
+
+	"github.com/agnivade/levenshtein"
 )
 
 // Translation contains translation items
@@ -16,17 +21,25 @@ type Translation struct {
 
 // TranslationItem contain single translation item
 type TranslationItem struct {
-	Type rune
 	Data []byte
+	Type rune
 }
 
 type SearchResult struct {
-	Keyword string
-	Items   []*TranslationItem
+	Terms []string
+	Items []*TranslationItem
+	Score uint8
 }
 
 // Dictionary stardict dictionary
 type Dictionary struct {
+	disabled bool
+
+	ifoPath  string
+	idxPath  string
+	dictPath string
+	synPath  string
+
 	dict *Dict
 	idx  *Idx
 	info *Info
@@ -43,134 +56,123 @@ func (d *Dictionary) ResourceURL() string {
 	return d.resURL
 }
 
-// Translate translates given item
-func (d *Dictionary) Translate(item string) (items []*Translation) {
-	senses := d.idx.Get(item)
-	return d.translate(senses)
+func (d *Dictionary) translate(offset uint64, size uint64) (items []*TranslationItem) {
+	if _, ok := d.info.Options["sametypesequence"]; ok {
+		return d.translateWithSametypesequence(d.dict.GetSequence(offset, size))
+	}
+	return d.translateWithoutSametypesequence(d.dict.GetSequence(offset, size))
 }
 
-func (d *Dictionary) translate(senses []Sense) (items []*Translation) {
-	for _, sense := range senses {
-		data := d.dict.GetSequence(sense[0], sense[1])
-
-		var transItems []*TranslationItem
-
-		if _, ok := d.info.Options["sametypesequence"]; ok {
-			transItems = d.translateWithSametypesequence(data)
-		} else {
-			transItems = d.translateWithoutSametypesequence(data)
-		}
-
-		items = append(items, &Translation{Parts: transItems})
+func similarity(a string, b string) uint8 {
+	n := len(a)
+	if len(b) > n {
+		n = len(b)
 	}
-
-	return
+	return uint8(200 * (n - levenshtein.ComputeDistance(a, b)) / n)
 }
 
-// SearchContains: search all translations for keywords that contain the query
-func (d *Dictionary) SearchContains(query string) []*SearchResult {
-	results := []*SearchResult{}
-	for keyword, senses := range d.idx.items {
-		if !strings.Contains(keyword, query) {
-			continue
-		}
-		result := &SearchResult{
-			Keyword: keyword,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		results = append(results, result)
-	}
-	return results
-}
-
-// SearchPrefix: search all translations for keywords that start with query
-func (d *Dictionary) SearchPrefix(query string) []*SearchResult {
-	results := []*SearchResult{}
-	for keyword, senses := range d.idx.items {
-		if !strings.HasPrefix(keyword, query) {
-			continue
-		}
-		result := &SearchResult{
-			Keyword: keyword,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		results = append(results, result)
-	}
-	return results
-}
-
-func (d *Dictionary) searchVeryShort(query string) []*SearchResult {
-	terms := []string{query}
-	queryLower := strings.ToLower(query)
-	if queryLower != query {
-		terms = append(terms, queryLower)
-	}
-	queryUpper := strings.ToUpper(query)
-	if queryUpper != query {
-		terms = append(terms, queryUpper)
-	}
-	results := []*SearchResult{}
-	for _, term := range terms {
-		senses := d.idx.Get(term)
-		if senses == nil {
-			continue
-		}
-		result := &SearchResult{
-			Keyword: term,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		results = append(results, result)
-	}
-	return results
-}
-
-// SearchAuto: first try an exact match
-// then search all translations for keywords that contain the query
+// Search: first try an exact match
+// then search all translations for terms that contain the query
 // but sort the one that have it as prefix first
-func (d *Dictionary) SearchAuto(query string) []*SearchResult {
-	if len(query) < 2 {
-		return d.searchVeryShort(query)
+func (d *Dictionary) Search(query string, cutoff int) []*SearchResult {
+	// if len(query) < 2 {
+	// 	return d.searchVeryShort(query)
+	// }
+	idx := d.idx
+	results := []*SearchResult{}
+
+	query = strings.ToLower(strings.TrimSpace(query))
+	queryWords := strings.Split(query, " ")
+
+	mainWordIndex := 0
+	for mainWordIndex < len(queryWords)-1 && queryWords[mainWordIndex] == "*" {
+		mainWordIndex++
 	}
-	results1 := []*SearchResult{}
-	results2 := []*SearchResult{}
-	exactSenses, found := d.idx.items[query]
-	if found {
-		result := &SearchResult{
-			Keyword: query,
-		}
-		for _, item := range d.translate(exactSenses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		results1 = append(results1, result)
-	}
-	for keyword, senses := range d.idx.items {
-		prefix := strings.HasPrefix(keyword, query)
-		contains := strings.Contains(keyword, query)
-		if !(prefix || contains) {
+	queryMainWord := queryWords[mainWordIndex]
+
+	minWordCount := 1
+	queryWordCount := 0
+	for _, word := range queryWords {
+		if word == "*" {
+			minWordCount++
 			continue
 		}
-		if keyword == query {
-			continue
+		queryWordCount++
+	}
+
+	chechEntry := func(entry *IdxEntry) uint8 {
+		bestScore := uint8(0)
+		for _, termOrig := range entry.Terms {
+			term := strings.ToLower(termOrig)
+			if term == query {
+				return 200
+			}
+			if strings.Contains(term, query) {
+				score := uint8(200 * (1 + len(query)) / (1 + len(term)))
+				if score > bestScore {
+					bestScore = score
+					continue
+				}
+			}
+			words := strings.Split(term, " ")
+			if len(words) < minWordCount {
+				continue
+			}
+			score := similarity(query, term)
+			if score > bestScore {
+				bestScore = score
+				continue
+			}
+			bestWordScore := uint8(0)
+			for wordI, word := range words {
+				wordScore := similarity(queryMainWord, word)
+				if wordI != mainWordIndex {
+					wordScore -= wordScore / 10
+				}
+				if wordScore < 140 {
+					continue
+				}
+				if wordScore > bestWordScore {
+					bestWordScore = wordScore
+				}
+			}
+			if bestWordScore > 50 {
+				if queryWordCount > 1 {
+					bestWordScore = bestWordScore/2 + bestWordScore/7
+				}
+				if bestWordScore > score {
+					score = bestWordScore
+				}
+			}
+			if score > bestScore {
+				bestScore = score
+			}
 		}
-		result := &SearchResult{
-			Keyword: keyword,
-		}
-		for _, item := range d.translate(senses) {
-			result.Items = append(result.Items, item.Parts...)
-		}
-		if prefix {
-			results1 = append(results1, result)
-		} else {
-			results2 = append(results2, result)
+		return bestScore
+	}
+
+	prefix, _ := utf8.DecodeRuneInString(queryMainWord)
+	for _, termIndex := range idx.byWordPrefix[prefix] {
+		entry := idx.terms[termIndex]
+		score := chechEntry(entry)
+		if score > 100 {
+			results = append(results, &SearchResult{
+				Score: score,
+				Terms: entry.Terms,
+				Items: d.translate(entry.Offset, entry.Size),
+			})
 		}
 	}
-	return append(results1, results2...)
+	fmt.Printf("Search produced %d results for %#v on %s\n", len(results), query, d.BookName())
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+	if cutoff > 0 && len(results) > cutoff {
+		for ; cutoff < len(results) && results[cutoff].Score > 180; cutoff++ {
+		}
+		results = results[:cutoff]
+	}
+	return results
 }
 
 func (d *Dictionary) translateWithSametypesequence(data []byte) (items []*TranslationItem) {
@@ -240,22 +242,16 @@ func (d *Dictionary) translateWithoutSametypesequence(data []byte) (items []*Tra
 	return
 }
 
-// GetBookName returns book name
-func (d *Dictionary) GetBookName() string {
+// BookName returns book name
+func (d *Dictionary) BookName() string {
 	return d.info.Options["bookname"]
 }
 
-// GetWordCount returns number of words in the dictionary
-func (d *Dictionary) GetWordCount() uint64 {
+// EntryCount returns number of entries in the dictionary
+func (d *Dictionary) EntryCount() uint64 {
 	num, _ := strconv.ParseUint(d.info.Options["wordcount"], 10, 64)
 
 	return num
-}
-
-func (d *Dictionary) IterKeywords(f func(string)) {
-	for keyword := range d.idx.items {
-		f(keyword)
-	}
 }
 
 // NewDictionary returns a new Dictionary
@@ -266,18 +262,21 @@ func NewDictionary(path string, name string) (*Dictionary, error) {
 
 	path = filepath.Clean(path)
 
+	ifoPath := filepath.Join(path, name+".ifo")
+	idxPath := filepath.Join(path, name+".idx")
+	synPath := filepath.Join(path, name+".syn")
+
 	dictDzPath := filepath.Join(path, name+".dict.dz")
 	dictPath := filepath.Join(path, name+".dict")
 
-	idxPath := filepath.Join(path, name+".idx")
-	infoPath := filepath.Join(path, name+".ifo")
-
-	if _, err := os.Stat(infoPath); os.IsNotExist(err) {
+	if _, err := os.Stat(ifoPath); err != nil {
 		return nil, err
 	}
-
-	if _, err := os.Stat(idxPath); os.IsNotExist(err) {
+	if _, err := os.Stat(idxPath); err != nil {
 		return nil, err
+	}
+	if _, err := os.Stat(synPath); err != nil {
+		synPath = ""
 	}
 
 	// we should have either .dict.dz or .dict file
@@ -289,24 +288,34 @@ func NewDictionary(path string, name string) (*Dictionary, error) {
 		dictPath = dictDzPath
 	}
 
-	info, err := ReadInfo(infoPath)
+	info, err := ReadInfo(ifoPath)
 	if err != nil {
 		return nil, err
 	}
-
-	idx, err := ReadIndex(idxPath, info)
-	if err != nil {
-		return nil, err
-	}
-
-	dict, err := ReadDict(dictPath, info)
-	if err != nil {
-		return nil, err
-	}
-
 	d.info = info
-	d.idx = idx
-	d.dict = dict
+
+	d.ifoPath = ifoPath
+	d.idxPath = idxPath
+	d.synPath = synPath
+	d.dictPath = dictPath
 
 	return d, nil
+}
+
+func (d *Dictionary) load() error {
+	{
+		idx, err := ReadIndex(d.idxPath, d.synPath, d.info)
+		if err != nil {
+			return err
+		}
+		d.idx = idx
+	}
+	{
+		dict, err := ReadDict(d.dictPath, d.info)
+		if err != nil {
+			return err
+		}
+		d.dict = dict
+	}
+	return nil
 }
