@@ -2,11 +2,11 @@
 
 To download and install this package run:
 
-`go get -u github.com/kapmahc/stardict`
+`go get -u github.com/ilius/go-stardict`
 
-Source docs: <http://godoc.org/github.com/kapmahc/stardict>
+Source docs: <http://godoc.org/github.com/ilius/go-stardict>
 
-Disclaimer Sample code can be found in [`dict_test.go`](https://github.com/kapmahc/stardict/blob/master/dict_test.go).
+Disclaimer Sample code can be found in [`dict_test.go`](https://github.com/ilius/go-stardict/blob/master/dict_test.go).
 
 ## Project Overview
 
@@ -16,7 +16,6 @@ Current limitations:
 
 - Index file is loaded into memory for fast random access
 - DictZip format is not supported, it is processed as a simple GZip format (means that no random blocks access is supported as in DictZip)
-- Syn files are not processed
 - There's no recovering from errors (means that dictionaries should be well formed)
 
 Not tested but should be working in theory (I didn't find dictionaries with those properties in place):
