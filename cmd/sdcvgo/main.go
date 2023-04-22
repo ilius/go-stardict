@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	stardict "github.com/ilius/go-stardict"
 )
@@ -27,15 +28,15 @@ func main() {
 			if dicI > 0 {
 				fmt.Printf("\n")
 			}
-			results := dic.Search(word, 20)
+			results := dic.SearchFuzzy(word, 8, 5*time.Second)
 			if len(results) > 0 {
-				fmt.Printf("--> query %#v from %s\n", word, dic.BookName())
+				fmt.Printf("--> query %#v from %s\n", word, dic.DictName())
 			}
 			for index, result := range results {
 				if index > 0 {
 					fmt.Printf("----------\n")
 				}
-				for _, item := range result.Items {
+				for _, item := range result.Items() {
 					fmt.Printf("%v\n", strings.TrimSpace(string(item.Data)))
 				}
 				fmt.Printf("\n")

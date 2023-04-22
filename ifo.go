@@ -21,17 +21,20 @@ type Info struct {
 	Options  map[string]string
 	Version  string
 	Is64     bool
-	Disabled bool
+	disabled bool
 }
 
-func (info Info) BookName() string {
+func (info Info) DictName() string {
 	return info.Options[I_bookname]
 }
 
-// WordCount returns number of words in the dictionary
-func (info Info) WordCount() uint64 {
-	num, _ := strconv.ParseUint(info.Options[I_wordcount], 10, 64)
-	return num
+// EntryCount returns number of words in the dictionary
+func (info Info) EntryCount() (int, error) {
+	num, err := strconv.ParseUint(info.Options[I_wordcount], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int(num), nil
 }
 
 func (info Info) Description() string {
@@ -82,24 +85,24 @@ func ReadInfo(filename string) (info *Info, err error) {
 		return
 	}
 
-	kn, kv, err := decodeOption(version[:len(version)-1])
+	key, value, err := decodeOption(version[:len(version)-1])
 	if err != nil {
 		return
 	}
 
-	if kn != "version" {
+	if key != "version" {
 		err = errors.New("Version missing (should be on second line)")
 		return
 	}
 
-	if kv != "2.4.2" && kv != "3.0.0" {
+	if value != "2.4.2" && value != "3.0.0" {
 		err = errors.New("Stardict version should be either 2.4.2 or 3.0.0")
 		return
 	}
 
 	info = new(Info)
 
-	info.Version = kv
+	info.Version = value
 
 	info.Options = make(map[string]string)
 
@@ -114,21 +117,21 @@ func ReadInfo(filename string) (info *Info, err error) {
 			break
 		}
 
-		kn, kv, err = decodeOption(option[:len(option)-1])
+		key, value, err = decodeOption(option[:len(option)-1])
 
 		if err != nil {
 			return info, err
 		}
 
-		info.Options[kn] = kv
+		info.Options[key] = value
 
 		if err == io.EOF {
 			break
 		}
 	}
 
-	if val, ok := info.Options["idxoffsetbits"]; ok {
-		if val == "64" {
+	if bits, ok := info.Options["idxoffsetbits"]; ok {
+		if bits == "64" {
 			info.Is64 = true
 		}
 	} else {

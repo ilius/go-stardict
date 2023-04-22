@@ -2,10 +2,15 @@ package stardict
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+
+	"github.com/ilius/go-stardict/common"
 )
 
 func isDir(pathStr string) bool {
@@ -16,38 +21,62 @@ func isDir(pathStr string) bool {
 	return stat.IsDir()
 }
 
+var ErrorHandler = func(err error) {
+	log.Println(err)
+}
+
 // Open open directories
-func Open(dirPathList []string, order map[string]int) ([]*Dictionary, error) {
-	var dicList []*Dictionary
+func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, error) {
+	var dicList []common.Dictionary
 	const ext = ".ifo"
 
-	walkFunc := func(path string, fi os.FileInfo, err error) error {
+	findIfoFile := func(path string) (string, os.FileInfo, error) {
+		dirEntries, err := os.ReadDir(path)
 		if err != nil {
-			return err
+			return "", nil, err
 		}
+		for _, de := range dirEntries {
+			if filepath.Ext(de.Name()) != ext {
+				continue
+			}
+			fi, err := de.Info()
+			if err != nil {
+				return "", nil, err
+			}
+			if fi == nil {
+				return "", nil, nil
+			}
+			return filepath.Join(path, fi.Name()), fi, nil
+		}
+		return "", nil, nil
+	}
+
+	checkDirEntry := func(path string, fi os.FileInfo) error {
 		if fi.IsDir() {
-			return nil
+			ifoPath, ifoFi, err := findIfoFile(path)
+			if err != nil {
+				return err
+			}
+			if ifoFi == nil {
+				return nil
+			}
+			fi = ifoFi
+			path = ifoPath
 		}
 		name := fi.Name()
-		if filepath.Ext(fi.Name()) != ext {
+		if filepath.Ext(name) != ext {
 			return nil
 		}
-		fmt.Printf("Loading %#v\n", path)
+		log.Printf("Initializing %#v\n", name)
 		dirPath := filepath.Dir(path)
 		dic, err := NewDictionary(dirPath, name[:len(name)-len(ext)])
 		if err != nil {
 			return err
 		}
-		if order[dic.BookName()] < 0 {
+		if order[dic.DictName()] < 0 {
 			dic.disabled = true
-			dic.info.Disabled = true
 			dicList = append(dicList, dic)
 			return nil
-		}
-		err = dic.load()
-		if err != nil {
-			fmt.Println(err)
-			return err
 		}
 		resDir := filepath.Join(dirPath, "res")
 		if isDir(resDir) {
@@ -67,11 +96,38 @@ func Open(dirPathList []string, order map[string]int) ([]*Dictionary, error) {
 		if !filepath.IsAbs(dirPath) {
 			dirPath = filepath.Join(homeDir, dirPath)
 		}
-		err := filepath.Walk(dirPath, walkFunc)
+
+		dirEntries, err := ioutil.ReadDir(dirPath)
 		if err != nil {
-			fmt.Println(err)
+			ErrorHandler(err)
+			continue
+		}
+		for _, fi := range dirEntries {
+			err := checkDirEntry(filepath.Join(dirPath, fi.Name()), fi)
+			if err != nil {
+				go ErrorHandler(err)
+			}
 		}
 	}
+	log.Println("Starting to load indexes")
+	var wg sync.WaitGroup
+	load := func(dic common.Dictionary) {
+		defer wg.Done()
+		err = dic.Load()
+		if err != nil {
+			ErrorHandler(fmt.Errorf("error loading %#v: %v", dic.DictName(), err))
+		} else {
+			log.Printf("Loaded index %#v\n", dic.IndexPath())
+		}
+	}
+	for _, dic := range dicList {
+		if dic.Disabled() {
+			continue
+		}
+		wg.Add(1)
+		go load(dic)
+	}
+	wg.Wait()
 	return dicList, nil
 }
 

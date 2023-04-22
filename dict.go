@@ -6,29 +6,33 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 )
-
-type t_ReadSeekerCloser interface {
-	io.ReadSeeker
-	io.Closer
-}
 
 // Dict implements in-memory dictionary
 type Dict struct {
-	r        t_ReadSeekerCloser
 	filename string
+
+	file *os.File
+	lock sync.Mutex
 }
 
-// GetSequence returns data at the given offset
-func (d Dict) GetSequence(offset uint64, size uint64) []byte {
-	d.r.Seek(int64(offset), 0)
-	p := make([]byte, size)
-	_, err := d.r.Read(p)
+func (d *Dict) Open() error {
+	file, err := os.Open(d.filename)
 	if err != nil {
-		log.Printf("error while reading dict file %#v: %v\n", d.filename, err)
-		return nil
+		return err
 	}
-	return p
+	d.file = file
+	return nil
+}
+
+func (d *Dict) Close() {
+	if d.file == nil {
+		return
+	}
+	log.Println("Closing", d.filename)
+	d.file.Close()
+	d.file = nil
 }
 
 func dictunzip(filename string) (string, error) {
@@ -50,23 +54,23 @@ func dictunzip(filename string) (string, error) {
 	return newFilename, nil
 }
 
-// ReadDict reads dictionary into memory
-func ReadDict(filename string, info *Info) (dict *Dict, err error) {
-	if strings.HasSuffix(filename, ".dz") { // if file is compressed then read it from archive
+// ReadDict creates Dict and opens .dict file
+func ReadDict(filename string, info *Info) (*Dict, error) {
+	if strings.HasSuffix(filename, ".dz") {
+		log.Println("dictunzip", filename)
+		// if file is compressed then read it from archive
+		var err error
 		filename, err = dictunzip(filename)
 		if err != nil {
-			return
+			return nil, err
 		}
 	}
-
-	reader, err := os.Open(filename)
-	if err != nil {
-		return
+	dict := &Dict{
+		filename: filename,
 	}
-
-	dict = new(Dict)
-	dict.filename = filename
-	dict.r = reader
-
-	return
+	err := dict.Open()
+	if err != nil {
+		return nil, err
+	}
+	return dict, nil
 }
