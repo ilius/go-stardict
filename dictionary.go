@@ -96,6 +96,17 @@ func similarity(r1 []rune, r2 []rune, subtract uint8) uint8 {
 	return score - subtract
 }
 
+func (d *dictionaryImp) newResult(entry *IdxEntry, entryIndex int, score uint8) *common.SearchResultLow {
+	return &common.SearchResultLow{
+		F_Score: score,
+		F_Terms: entry.terms,
+		Items: func() []*common.SearchResultItem {
+			return d.decodeData(d.dict.GetSequence(entry.offset, entry.size))
+		},
+		F_EntryIndex: uint64(entryIndex),
+	}
+}
+
 // SearchFuzzy: run a fuzzy search with similarity scores
 // ranging from 140 (which means %70) to 200 (which means 100%)
 func (d *dictionaryImp) SearchFuzzy(
@@ -131,64 +142,20 @@ func (d *dictionaryImp) SearchFuzzy(
 		queryWordCount++
 	}
 
-	checkEntry := func(entry *IdxEntry) uint8 {
-		terms := entry.terms
-		bestScore := uint8(0)
-		for termI, termOrig := range terms {
-			subtract := uint8(3)
-			if termI < 3 {
-				subtract = uint8(termI)
-			}
-			term := strings.ToLower(termOrig)
-			if term == query {
-				return 200 - subtract
-			}
-			words := strings.Split(term, " ")
-			if len(words) < minWordCount {
-				continue
-			}
-			score := similarity(queryRunes, []rune(term), subtract)
-			if score > bestScore {
-				bestScore = score
-				if score >= 180 {
-					continue
-				}
-			}
-			if len(words) > 1 {
-				bestWordScore := uint8(0)
-				for wordI, word := range words {
-					wordScore := similarity(queryMainWord, []rune(word), subtract)
-					if wordScore < 50 {
-						continue
-					}
-					if wordI == mainWordIndex {
-						wordScore -= 1
-					} else {
-						wordScore -= wordScore / 10
-					}
-					if wordScore > bestWordScore {
-						bestWordScore = wordScore
-					}
-				}
-				if bestWordScore < 50 {
-					continue
-				}
-				if queryWordCount > 1 {
-					bestWordScore = bestWordScore>>1 + bestWordScore/7
-				}
-				if bestWordScore > bestScore {
-					bestScore = bestWordScore
-				}
-			}
-		}
-		return bestScore
-	}
-
 	prefix := queryMainWord[0]
 	entryIndexes := idx.byWordPrefix[prefix]
 
 	t1 := time.Now()
 	N := len(entryIndexes)
+
+	args := &ScoreFuzzyArgs{
+		Query:          query,
+		QueryRunes:     queryRunes,
+		QueryMainWord:  queryMainWord,
+		QueryWordCount: queryWordCount,
+		MinWordCount:   minWordCount,
+		MainWordIndex:  mainWordIndex,
+	}
 
 	results := runWorkers(
 		N,
@@ -198,18 +165,11 @@ func (d *dictionaryImp) SearchFuzzy(
 			var results []*common.SearchResultLow
 			for i := start; i < end; i++ {
 				entry := idx.entries[entryIndexes[i]]
-				score := checkEntry(entry)
+				score := scoreEntryFuzzy(entry.terms, args)
 				if score < minScore {
 					continue
 				}
-				results = append(results, &common.SearchResultLow{
-					F_Score: score,
-					F_Terms: entry.terms,
-					Items: func() []*common.SearchResultItem {
-						return d.decodeData(d.dict.GetSequence(entry.offset, entry.size))
-					},
-					F_EntryIndex: uint64(i),
-				})
+				results = append(results, d.newResult(entry, i, score))
 			}
 			return results
 		},
@@ -233,31 +193,6 @@ func (d *dictionaryImp) SearchStartWith(
 
 	query = strings.ToLower(strings.TrimSpace(query))
 
-	checkEntry := func(entry *IdxEntry) uint8 {
-		terms := entry.terms
-		bestScore := uint8(0)
-		for termI, termOrig := range terms {
-			term := strings.ToLower(termOrig)
-			if !strings.HasPrefix(term, query) {
-				continue
-			}
-			subtract := uint8(3)
-			if termI < 3 {
-				subtract = uint8(termI)
-			}
-			deltaLen := len(term) - len(query)
-			subtract2 := uint8(20)
-			if deltaLen < 20 {
-				subtract2 = uint8(deltaLen)
-			}
-			score := 200 - subtract - subtract2
-			if score > bestScore {
-				bestScore = score
-			}
-		}
-		return bestScore
-	}
-
 	prefix, _ := utf8.DecodeRuneInString(query)
 	entryIndexes := idx.byWordPrefix[prefix]
 
@@ -272,17 +207,11 @@ func (d *dictionaryImp) SearchStartWith(
 			var results []*common.SearchResultLow
 			for i := start; i < end; i++ {
 				entry := idx.entries[entryIndexes[i]]
-				score := checkEntry(entry)
+				score := ScoreStartsWith(entry.terms, query)
 				if score < minScore {
 					continue
 				}
-				results = append(results, &common.SearchResultLow{
-					F_Score: score,
-					F_Terms: entry.terms,
-					Items: func() []*common.SearchResultItem {
-						return d.decodeData(d.dict.GetSequence(entry.offset, entry.size))
-					},
-				})
+				results = append(results, d.newResult(entry, i, score))
 			}
 			return results
 		},
@@ -324,13 +253,7 @@ func (d *dictionaryImp) searchPattern(
 				if score < minScore {
 					continue
 				}
-				results = append(results, &common.SearchResultLow{
-					F_Score: score,
-					F_Terms: entry.terms,
-					Items: func() []*common.SearchResultItem {
-						return d.decodeData(d.dict.GetSequence(entry.offset, entry.size))
-					},
-				})
+				results = append(results, d.newResult(entry, entryI, score))
 			}
 			return results
 		},
