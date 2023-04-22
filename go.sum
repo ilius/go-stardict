@@ -1,2 +1,4 @@
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
 github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=
+github.com/ilius/go-dict-commons v0.1.0 h1:KvbAiGJg2WV9Ogw/o2VkGAawze65t48HJXw/2e/t7/0=
+github.com/ilius/go-dict-commons v0.1.0/go.mod h1:z5IgcnlVQqE76GU603UjjnzoQBP04dmR6qUE5GJQRzY=

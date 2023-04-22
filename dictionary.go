@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gobwas/glob"
-	"github.com/ilius/go-stardict/common"
+	common "github.com/ilius/go-dict-commons"
 	"github.com/ilius/go-stardict/levenshtein"
 	"github.com/ilius/go-stardict/murmur3"
 )

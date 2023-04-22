@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ilius/go-stardict/common"
+	common "github.com/ilius/go-dict-commons"
 )
 
 func isDir(pathStr string) bool {
