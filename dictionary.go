@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/agnivade/levenshtein"
 	"github.com/gobwas/glob"
 	"github.com/ilius/go-stardict/common"
+	"github.com/ilius/go-stardict/levenshtein"
 	"github.com/ilius/go-stardict/murmur3"
 )
 
@@ -89,7 +89,7 @@ func similarity(r1 []rune, r2 []rune, subtract uint8) uint8 {
 		// this optimization assumes we want to ignore below %66 similarity
 		return 0
 	}
-	score := uint8(200 * (n - levenshtein.ComputeDistance(string(r1), string(r2))) / n)
+	score := uint8(200 * (n - levenshtein.ComputeDistance(r1, r2)) / n)
 	if score <= subtract {
 		return 0
 	}
