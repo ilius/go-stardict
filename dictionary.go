@@ -215,7 +215,7 @@ func (d *dictionaryImp) SearchFuzzy(
 		},
 	)
 
-	dt := time.Now().Sub(t1)
+	dt := time.Since(t1)
 	if dt > time.Millisecond {
 		log.Printf("SearchFuzzy index loop took %v for %#v on %s\n", dt, query, d.DictName())
 	}
@@ -288,7 +288,7 @@ func (d *dictionaryImp) SearchStartWith(
 		},
 	)
 
-	dt := time.Now().Sub(t1)
+	dt := time.Since(t1)
 	if dt > time.Millisecond {
 		log.Printf("SearchStartWith index loop took %v for %#v on %s\n", dt, query, d.DictName())
 	}
@@ -357,7 +357,7 @@ func (d *dictionaryImp) SearchRegex(
 		}
 		return 180
 	})
-	dt := time.Now().Sub(t1)
+	dt := time.Since(t1)
 	if dt > time.Millisecond {
 		log.Printf("SearchRegex index loop took %v for %#v on %s\n", dt, query, d.DictName())
 	}
@@ -384,7 +384,7 @@ func (d *dictionaryImp) SearchGlob(
 		}
 		return 180
 	})
-	dt := time.Now().Sub(t1)
+	dt := time.Since(t1)
 	if dt > time.Millisecond {
 		log.Printf("SearchGlob index loop took %v for %#v on %s\n", dt, query, d.DictName())
 	}
