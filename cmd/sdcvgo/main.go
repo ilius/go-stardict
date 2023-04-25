@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	stardict "github.com/ilius/go-stardict"
+	stardict "github.com/ilius/go-stardict/v2"
 )
 
 func main() {

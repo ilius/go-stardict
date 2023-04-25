@@ -15,7 +15,7 @@ import (
 	"github.com/gobwas/glob"
 	common "github.com/ilius/go-dict-commons"
 	su "github.com/ilius/go-dict-commons/search_utils"
-	"github.com/ilius/go-stardict/murmur3"
+	"github.com/ilius/go-stardict/v2/murmur3"
 )
 
 // dictionaryImp stardict dictionary
