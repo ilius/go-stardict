@@ -15,7 +15,17 @@ func (d *Dict) GetSequence(offset uint64, size uint64) []byte {
 		return nil
 	}
 	p := make([]byte, size)
-	_, err := syscall.Pread(int(d.file.Fd()), p, int64(offset))
+	if d.rawDictFile != nil {
+		_, err := syscall.Pread(int(d.rawDictFile.Fd()), p, int64(offset))
+		if err != nil {
+			log.Printf("error while reading dict file %#v: %v\n", d.filename, err)
+			return nil
+		}
+	}
+	// we are using .dict.dz reader which uses Seek() and is not concurrent-safe
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	_, err := d.file.ReadAt(p, int64(offset))
 	if err != nil {
 		log.Printf("error while reading dict file %#v: %v\n", d.filename, err)
 		return nil

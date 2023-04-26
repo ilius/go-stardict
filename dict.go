@@ -1,27 +1,48 @@
 package stardict
 
 import (
-	"compress/gzip"
-	"io"
 	"log"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ilius/go-stardict/v2/dictzip"
 )
+
+type DictFile interface {
+	ReadAt(p []byte, off int64) (n int, err error)
+	Close() error
+}
 
 // Dict implements in-memory dictionary
 type Dict struct {
 	filename string
 
-	file *os.File
+	file DictFile
 	lock sync.Mutex
+
+	// rawDictFile is only set if we are using .dict, not .dict.dz
+	rawDictFile *os.File
 }
 
 func (d *Dict) Open() error {
-	file, err := os.Open(d.filename)
+	filename := d.filename
+	rawFile, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
+	var file DictFile
+	if strings.HasSuffix(filename, ".dz") {
+		var err error
+		file, err = dictzip.NewReader(rawFile)
+		if err != nil {
+			return err
+		}
+	} else {
+		file = rawFile
+		d.rawDictFile = rawFile
+	}
+
 	d.file = file
 	return nil
 }
@@ -35,36 +56,8 @@ func (d *Dict) Close() {
 	d.file = nil
 }
 
-func dictunzip(filename string) (string, error) {
-	newFilename := filename[0 : len(filename)-3]
-	reader, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	gzReader, err := gzip.NewReader(reader)
-	defer gzReader.Close()
-	writer, err := os.Create(newFilename)
-	if err != nil {
-		return "", err
-	}
-	_, err = io.Copy(writer, gzReader)
-	if err != nil {
-		return "", err
-	}
-	return newFilename, nil
-}
-
 // ReadDict creates Dict and opens .dict file
 func ReadDict(filename string, info *Info) (*Dict, error) {
-	if strings.HasSuffix(filename, ".dz") {
-		log.Println("dictunzip", filename)
-		// if file is compressed then read it from archive
-		var err error
-		filename, err = dictunzip(filename)
-		if err != nil {
-			return nil, err
-		}
-	}
 	dict := &Dict{
 		filename: filename,
 	}
