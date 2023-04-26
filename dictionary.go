@@ -68,10 +68,10 @@ func (d *dictionaryImp) Close() {
 
 func (d *dictionaryImp) CalcHash() ([]byte, error) {
 	file, err := os.Open(d.idxPath)
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	hash := murmur3.New128()
 	if _, err := io.Copy(hash, file); err != nil {
 		return nil, err
