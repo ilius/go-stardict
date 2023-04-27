@@ -90,6 +90,14 @@ func (d *dictionaryImp) newResult(entry *IdxEntry, entryIndex int, score uint8) 
 	}
 }
 
+func (d *dictionaryImp) EntryByIndex(index int) *common.SearchResultLow {
+	if index >= len(d.idx.entries) {
+		return nil
+	}
+	entry := d.idx.entries[index]
+	return d.newResult(entry, index, 0)
+}
+
 // SearchFuzzy: run a fuzzy search with similarity scores
 // ranging from 140 (which means %70) to 200 (which means 100%)
 func (d *dictionaryImp) SearchFuzzy(
