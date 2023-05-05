@@ -100,7 +100,7 @@ func ReadInfo(filename string) (info *Info, err error) {
 		return
 	}
 
-	info = new(Info)
+	info = &Info{}
 
 	info.Version = value
 
