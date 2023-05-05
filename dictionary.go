@@ -3,6 +3,7 @@ package stardict
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -186,6 +187,13 @@ func (d *dictionaryImp) SearchStartWith(
 	query = strings.ToLower(strings.TrimSpace(query))
 
 	prefix, _ := utf8.DecodeRuneInString(query)
+	if prefix == utf8.RuneError {
+		ErrorHandler(fmt.Errorf(
+			"RuneError from DecodeRuneInString for query: %#v",
+			query,
+		))
+		return nil
+	}
 	entryIndexes := idx.byWordPrefix[prefix]
 
 	t1 := time.Now()
