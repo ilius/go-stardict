@@ -154,9 +154,10 @@ func (d *dictionaryImp) SearchFuzzy(
 		timeout,
 		func(start int, end int) []*common.SearchResultLow {
 			var results []*common.SearchResultLow
+			buff := make([]uint16, 500)
 			for i := start; i < end; i++ {
 				entry := idx.entries[entryIndexes[i]]
-				score := su.ScoreFuzzy(entry.terms, args)
+				score := su.ScoreFuzzy(entry.terms, args, buff)
 				if score < minScore {
 					continue
 				}
