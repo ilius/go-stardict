@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 func readSyn(idx *Idx, synPath string, wordPrefixMap WordPrefixMap) error {
-	data, err := ioutil.ReadFile(synPath)
+	data, err := os.ReadFile(synPath)
 	// unable to read index
 	if err != nil {
 		return err

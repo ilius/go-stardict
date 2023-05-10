@@ -2,7 +2,7 @@ package stardict
 
 import (
 	"encoding/binary"
-	"io/ioutil"
+	"os"
 )
 
 type IdxEntry struct {
@@ -51,7 +51,7 @@ const (
 
 // ReadIndex reads dictionary index into a memory and returns in-memory index structure
 func ReadIndex(filename string, synPath string, info *Info) (*Idx, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	// unable to read index
 	if err != nil {
 		return nil, err
