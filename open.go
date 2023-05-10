@@ -2,7 +2,7 @@ package stardict
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -29,7 +29,7 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 			dirPath = filepath.Join(homeDir, dirPath)
 		}
 
-		dirEntries, err := ioutil.ReadDir(dirPath)
+		dirEntries, err := os.ReadDir(dirPath)
 		if err != nil {
 			go ErrorHandler(err)
 			continue
@@ -79,7 +79,19 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 	return dicList, nil
 }
 
-func checkDirEntry(parentDir string, fi os.FileInfo) (*dictionaryImp, error) {
+type DirEntryFromFileInfo struct {
+	fs.FileInfo
+}
+
+func (e *DirEntryFromFileInfo) Type() fs.FileMode {
+	return e.Mode().Type()
+}
+
+func (e *DirEntryFromFileInfo) Info() (fs.FileInfo, error) {
+	return e.FileInfo, nil
+}
+
+func checkDirEntry(parentDir string, fi os.DirEntry) (*dictionaryImp, error) {
 	path := filepath.Join(parentDir, fi.Name())
 	dictDir := parentDir
 	if fi.IsDir() {
@@ -90,7 +102,7 @@ func checkDirEntry(parentDir string, fi os.FileInfo) (*dictionaryImp, error) {
 		if ifoFi == nil {
 			return nil, nil
 		}
-		fi = ifoFi
+		fi = &DirEntryFromFileInfo{FileInfo: ifoFi}
 		dictDir = path
 	}
 	name := fi.Name()
