@@ -91,10 +91,10 @@ func (e *DirEntryFromFileInfo) Info() (fs.FileInfo, error) {
 	return e.FileInfo, nil
 }
 
-func checkDirEntry(parentDir string, fi os.DirEntry) (*dictionaryImp, error) {
-	path := filepath.Join(parentDir, fi.Name())
+func checkDirEntry(parentDir string, entry os.DirEntry) (*dictionaryImp, error) {
+	path := filepath.Join(parentDir, entry.Name())
 	dictDir := parentDir
-	if fi.IsDir() {
+	if entry.IsDir() {
 		_, ifoFi, err := findIfoFile(path)
 		if err != nil {
 			return nil, err
@@ -102,10 +102,10 @@ func checkDirEntry(parentDir string, fi os.DirEntry) (*dictionaryImp, error) {
 		if ifoFi == nil {
 			return nil, nil
 		}
-		fi = &DirEntryFromFileInfo{FileInfo: ifoFi}
+		entry = &DirEntryFromFileInfo{FileInfo: ifoFi}
 		dictDir = path
 	}
-	name := fi.Name()
+	name := entry.Name()
 	if filepath.Ext(name) != ifoExt {
 		return nil, nil
 	}
