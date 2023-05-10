@@ -315,7 +315,7 @@ func (d *dictionaryImp) SearchGlob(
 }
 
 func (d *dictionaryImp) decodeWithSametypesequence(data []byte) (items []*common.SearchResultItem) {
-	seq := d.Options["sametypesequence"]
+	seq := d.Options[I_sametypesequence]
 
 	seqLen := len(seq)
 
@@ -383,7 +383,7 @@ func (d *dictionaryImp) decodeWithoutSametypesequence(data []byte) (items []*com
 
 // DictName returns book name
 func (d *dictionaryImp) DictName() string {
-	return d.Options["bookname"]
+	return d.Options[I_bookname]
 }
 
 // NewDictionary returns a new Dictionary
@@ -433,7 +433,7 @@ func NewDictionary(path string, name string) (*dictionaryImp, error) {
 	d.synPath = synPath
 	d.dictPath = dictPath
 
-	if _, ok := info.Options["sametypesequence"]; ok {
+	if _, ok := info.Options[I_sametypesequence]; ok {
 		d.decodeData = d.decodeWithSametypesequence
 	} else {
 		d.decodeData = d.decodeWithoutSametypesequence

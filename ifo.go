@@ -14,6 +14,9 @@ const (
 	I_wordcount   = "wordcount"
 	I_description = "description"
 	I_idxfilesize = "idxfilesize"
+
+	I_sametypesequence = "sametypesequence"
+	I_idxoffsetbits    = "idxoffsetbits"
 )
 
 // Info contains dictionary options
@@ -130,7 +133,7 @@ func ReadInfo(filename string) (info *Info, err error) {
 		}
 	}
 
-	if bits, ok := info.Options["idxoffsetbits"]; ok {
+	if bits, ok := info.Options[I_idxoffsetbits]; ok {
 		if bits == "64" {
 			info.Is64 = true
 		}
