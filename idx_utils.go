@@ -10,6 +10,9 @@ type WordPrefixMap map[rune]map[int]bool
 
 func (wpm WordPrefixMap) Add(term string, termIndex int) {
 	for _, word := range strings.Split(strings.ToLower(term), " ") {
+		if word == "" {
+			continue
+		}
 		prefix, _ := utf8.DecodeRuneInString(word)
 		if prefix == utf8.RuneError {
 			ErrorHandler(fmt.Errorf(
