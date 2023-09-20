@@ -48,12 +48,6 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 				dicList = append(dicList, dic)
 				continue
 			}
-			resDir := filepath.Join(dirPath, "res")
-			if isDir(resDir) {
-				dic.resDir = resDir
-				dic.resURL = "file://" + pathToUnix(resDir)
-
-			}
 			dicList = append(dicList, dic)
 		}
 	}
@@ -110,10 +104,19 @@ func checkDirEntry(parentDir string, entry os.DirEntry) (*dictionaryImp, error) 
 		return nil, nil
 	}
 	log.Printf("Initializing %#v\n", name)
-	return NewDictionary(
+	dic, err := NewDictionary(
 		dictDir,
 		name[:len(name)-len(ifoExt)],
 	)
+	if err != nil {
+		return nil, err
+	}
+	resDir := filepath.Join(dictDir, "res")
+	if isDir(resDir) {
+		dic.resDir = resDir
+		dic.resURL = "file://" + pathToUnix(resDir)
+	}
+	return dic, nil
 }
 
 func isDir(pathStr string) bool {
