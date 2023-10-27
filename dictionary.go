@@ -156,13 +156,16 @@ func (d *dictionaryImp) SearchFuzzy(
 		func(start int, end int) []*common.SearchResultLow {
 			var results []*common.SearchResultLow
 			buff := make([]uint16, 500)
-			for i := start; i < end; i++ {
-				entry := idx.entries[entryIndexes[i]]
-				score := su.ScoreFuzzy(entry.terms, args, buff)
+			var entry *IdxEntry
+			var score uint8
+			var entryI int
+			for entryI = start; entryI < end; entryI++ {
+				entry = idx.entries[entryIndexes[entryI]]
+				score = su.ScoreFuzzy(entry.terms, args, buff)
 				if score < minScore {
 					continue
 				}
-				results = append(results, d.newResult(entry, i, score))
+				results = append(results, d.newResult(entry, entryI, score))
 			}
 			return results
 		},
@@ -205,13 +208,16 @@ func (d *dictionaryImp) SearchStartWith(
 		timeout,
 		func(start int, end int) []*common.SearchResultLow {
 			var results []*common.SearchResultLow
-			for i := start; i < end; i++ {
-				entry := idx.entries[entryIndexes[i]]
-				score := su.ScoreStartsWith(entry.terms, query)
+			var entry *IdxEntry
+			var score uint8
+			var entryI int
+			for entryI = start; entryI < end; entryI++ {
+				entry = idx.entries[entryIndexes[entryI]]
+				score = su.ScoreStartsWith(entry.terms, query)
 				if score < minScore {
 					continue
 				}
-				results = append(results, d.newResult(entry, i, score))
+				results = append(results, d.newResult(entry, entryI, score))
 			}
 			return results
 		},
@@ -240,9 +246,12 @@ func (d *dictionaryImp) searchPattern(
 		timeout,
 		func(start int, end int) []*common.SearchResultLow {
 			var results []*common.SearchResultLow
-			for entryI := start; entryI < end; entryI++ {
-				entry := idx.entries[entryI]
-				score := uint8(0)
+			var entry *IdxEntry
+			var score uint8
+			var entryI int
+			for entryI = start; entryI < end; entryI++ {
+				entry = idx.entries[entryI]
+				score = uint8(0)
 				for _, term := range entry.terms {
 					termScore := checkTerm(term)
 					if termScore > score {
