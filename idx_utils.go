@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 )
 
-type WordPrefixMap map[rune]map[int]bool
+type WordPrefixMap map[rune]map[int]struct{}
 
 func (wpm WordPrefixMap) Add(term string, termIndex int) {
 	for _, word := range strings.Split(strings.ToLower(term), " ") {
@@ -23,9 +23,9 @@ func (wpm WordPrefixMap) Add(term string, termIndex int) {
 		}
 		m, ok := wpm[prefix]
 		if !ok {
-			m = map[int]bool{}
+			m = map[int]struct{}{}
 			wpm[prefix] = m
 		}
-		m[termIndex] = true
+		m[termIndex] = struct{}{}
 	}
 }
