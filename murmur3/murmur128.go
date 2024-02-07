@@ -57,7 +57,7 @@ func (d *digest128) bmix(p []byte) (tail []byte) {
 	h1, h2 := d.h1, d.h2
 
 	nblocks := len(p) / 16
-	for i := 0; i < nblocks; i++ {
+	for i := range nblocks {
 		t := (*[2]uint64)(unsafe.Pointer(&p[i*16]))
 		k1, k2 := t[0], t[1]
 

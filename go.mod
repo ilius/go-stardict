@@ -1,6 +1,6 @@
 module github.com/ilius/go-stardict/v2
 
-go 1.14
+go 1.22
 
 require (
 	github.com/gobwas/glob v0.2.3

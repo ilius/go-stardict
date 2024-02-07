@@ -120,7 +120,7 @@ func NewReader(rs io.ReadSeekCloser) (*Reader, error) {
 
 	dz.offsets = make([]int64, blockCount+1)
 	dz.offsets[0] = int64(p)
-	for i := 0; i < blockCount; i++ {
+	for i := range blockCount {
 		dz.offsets[i+1] = dz.offsets[i] + int64(metadata[6+2*i]) + 256*int64(metadata[7+2*i])
 	}
 

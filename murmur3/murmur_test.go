@@ -54,7 +54,7 @@ func bench128(b *testing.B, length int) {
 	buf := make([]byte, length)
 	b.SetBytes(int64(length))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		Sum128(buf)
 	}
 }
