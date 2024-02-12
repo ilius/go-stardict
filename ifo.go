@@ -73,7 +73,7 @@ func ReadInfo(filename string) (info *Info, err error) {
 		return
 	}
 
-	defer reader.Close()
+	defer close(reader)
 
 	r := bufio.NewReader(reader)
 

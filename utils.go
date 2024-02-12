@@ -1,5 +1,17 @@
 package stardict
 
+import (
+	"io"
+	"log"
+)
+
+func close(c io.Closer) {
+	err := c.Close()
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func splitRunes(s []rune, c rune) [][]rune {
 	if len(s) == 0 {
 		return [][]rune{nil}
