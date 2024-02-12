@@ -52,7 +52,7 @@ func (d *Dict) Close() {
 		return
 	}
 	log.Println("Closing", d.filename)
-	close(d.file)
+	closeCloser(d.file)
 	d.file = nil
 }
 

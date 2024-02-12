@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func close(c io.Closer) {
+func closeCloser(c io.Closer) {
 	err := c.Close()
 	if err != nil {
 		log.Println(err)

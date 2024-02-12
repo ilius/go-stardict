@@ -72,7 +72,7 @@ func (d *dictionaryImp) CalcHash() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer close(file)
+	defer closeCloser(file)
 	hash := murmur3.New128()
 	if _, err := io.Copy(hash, file); err != nil {
 		return nil, err
