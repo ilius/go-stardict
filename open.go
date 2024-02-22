@@ -57,7 +57,7 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 		defer wg.Done()
 		err = dic.Load()
 		if err != nil {
-			ErrorHandler(fmt.Errorf("error loading %#v: %v", dic.DictName(), err))
+			ErrorHandler(fmt.Errorf("error loading %#v: %w", dic.DictName(), err))
 		} else {
 			log.Printf("Loaded index %#v\n", dic.IndexPath())
 		}
