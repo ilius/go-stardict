@@ -4,5 +4,5 @@ go 1.22
 
 require (
 	github.com/gobwas/glob v0.2.3
-	github.com/ilius/go-dict-commons v0.4.0
+	github.com/ilius/go-dict-commons v0.4.2
 )
