@@ -194,7 +194,7 @@ func (dz *Reader) GetB64(start, size string) ([]byte, error) {
 	return dz.Get(start2, size2)
 }
 
-//. Base64 decoder
+// Base64 decoder
 
 var index = []uint64{
 	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,

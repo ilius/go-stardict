@@ -152,5 +152,5 @@ func pathToUnix(pathStr string) string {
 	if runtime.GOOS != "windows" {
 		return pathStr
 	}
-	return "/" + strings.Replace(pathStr, `\`, `/`, -1)
+	return "/" + strings.ReplaceAll(pathStr, `\`, `/`)
 }
