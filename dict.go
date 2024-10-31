@@ -57,7 +57,7 @@ func (d *Dict) Close() {
 }
 
 // ReadDict creates Dict and opens .dict file
-func ReadDict(filename string, info *Info) (*Dict, error) {
+func ReadDict(filename string) (*Dict, error) {
 	dict := &Dict{
 		filename: filename,
 	}

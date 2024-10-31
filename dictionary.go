@@ -460,7 +460,7 @@ func (d *dictionaryImp) Load() error {
 		d.idx = idx
 	}
 	{
-		dict, err := ReadDict(d.dictPath, d.Info)
+		dict, err := ReadDict(d.dictPath)
 		if err != nil {
 			return err
 		}
