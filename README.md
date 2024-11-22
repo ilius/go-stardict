@@ -23,7 +23,6 @@ Not tested but should be working in theory (I didn't find dictionaries with thos
 - 64bit offsets
 - multi typed dictionary fields
 
-
 ## Thanks
 
 - [Format for StarDict dictionary files](http://www.stardict.org/StarDictFileFormat)
