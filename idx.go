@@ -66,13 +66,13 @@ func ReadIndex(filename string, synPath string, info *Info) (*Idx, error) {
 	wordPrefixMap := WordPrefixMap{}
 
 	var buf [255]byte // temporary buffer
-	var bufPos int
+	var bufPos uint8
 	state := termState
 
 	var term string
 	var dataOffset uint64
 
-	maxIntBytes := info.MaxIdxBytes()
+	maxIntBytes := uint8(info.MaxIdxBytes())
 
 	for _, b := range data {
 		buf[bufPos] = b
