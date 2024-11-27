@@ -78,7 +78,6 @@ func ReadInfo(filename string) (info *Info, err error) {
 	r := bufio.NewReader(reader)
 
 	_, err = r.ReadString('\n')
-
 	if err != nil {
 		return
 	}
@@ -121,7 +120,6 @@ func ReadInfo(filename string) (info *Info, err error) {
 		}
 
 		key, value, err = decodeOption(option[:len(option)-1])
-
 		if err != nil {
 			return info, err
 		}
