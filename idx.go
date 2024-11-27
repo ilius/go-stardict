@@ -41,7 +41,7 @@ func (idx *Idx) Add(term string, offset uint64, size uint64) int {
 	return termIndex
 }
 
-type t_state int
+type t_state uint8
 
 const (
 	termState t_state = iota
