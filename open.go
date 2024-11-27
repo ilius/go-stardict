@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	common "github.com/ilius/go-dict-commons"
 )
@@ -55,11 +56,12 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 	var wg sync.WaitGroup
 	load := func(dic common.Dictionary) {
 		defer wg.Done()
+		t0 := time.Now()
 		err = dic.Load()
 		if err != nil {
 			ErrorHandler(fmt.Errorf("error loading %#v: %w", dic.DictName(), err))
 		} else {
-			log.Printf("Loaded index %#v\n", dic.IndexPath())
+			log.Printf("Loaded index %#v in %v\n", dic.IndexPath(), time.Since(t0))
 		}
 	}
 	for _, dic := range dicList {
