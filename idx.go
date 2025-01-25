@@ -49,6 +49,8 @@ const (
 	sizeState
 )
 
+const MAX_TERM_LENGTH = 1024
+
 // ReadIndex reads dictionary index into a memory and returns in-memory index structure
 func ReadIndex(filename string, synPath string, info *Info) (*Idx, error) {
 	data, err := os.ReadFile(filename)
@@ -65,7 +67,7 @@ func ReadIndex(filename string, synPath string, info *Info) (*Idx, error) {
 
 	wordPrefixMap := WordPrefixMap{}
 
-	var buf [255]byte // temporary buffer
+	var buf [MAX_TERM_LENGTH]byte // temporary buffer
 	var bufPos uint8
 	state := termState
 
