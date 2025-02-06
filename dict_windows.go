@@ -3,12 +3,14 @@
 
 package stardict
 
-import "log"
+import (
+	"log/slog"
+)
 
 // GetSequence returns data at the given offset
 func (d *Dict) GetSequence(offset uint64, size uint64) []byte {
 	if d.file == nil {
-		log.Println("GetSequence: file is closed")
+		slog.Warn("GetSequence: file is closed")
 		return nil
 	}
 	d.lock.Lock()
@@ -16,7 +18,7 @@ func (d *Dict) GetSequence(offset uint64, size uint64) []byte {
 	p := make([]byte, size)
 	_, err := d.file.ReadAt(p, int64(offset))
 	if err != nil {
-		log.Printf("error while reading dict file %#v: %v\n", d.filename, err)
+		slog.Error("error while reading dict file", "err", err, "filename", d.filename)
 		return nil
 	}
 	return p

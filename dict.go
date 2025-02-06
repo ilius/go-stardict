@@ -1,7 +1,7 @@
 package stardict
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"sync"
@@ -51,7 +51,7 @@ func (d *Dict) Close() {
 	if d.file == nil {
 		return
 	}
-	log.Println("Closing", d.filename)
+	slog.Info("Closing dict", "filename", d.filename)
 	closeCloser(d.file)
 	d.file = nil
 }

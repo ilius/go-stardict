@@ -3,7 +3,7 @@ package stardict
 import (
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -52,7 +52,7 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 			dicList = append(dicList, dic)
 		}
 	}
-	log.Println("Starting to load indexes")
+	slog.Info("Starting to load indexes")
 	var wg sync.WaitGroup
 	load := func(dic common.Dictionary) {
 		defer wg.Done()
@@ -61,7 +61,7 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 		if err != nil {
 			ErrorHandler(fmt.Errorf("error loading %#v: %w", dic.DictName(), err))
 		} else {
-			log.Printf("Loaded index %#v in %v\n", dic.IndexPath(), time.Since(t0))
+			slog.Info("Loaded index", "path", dic.IndexPath(), "dt", time.Since(t0))
 		}
 	}
 	for _, dic := range dicList {
@@ -105,7 +105,7 @@ func checkDirEntry(parentDir string, entry os.DirEntry) (*dictionaryImp, error) 
 	if filepath.Ext(name) != ifoExt {
 		return nil, nil
 	}
-	log.Printf("Initializing %#v\n", name)
+	slog.Info("Initializing directory", "name", name)
 	dic, err := NewDictionary(
 		dictDir,
 		name[:len(name)-len(ifoExt)],

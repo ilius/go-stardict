@@ -2,13 +2,13 @@ package stardict
 
 import (
 	"io"
-	"log"
+	"log/slog"
 )
 
 func closeCloser(c io.Closer) {
 	err := c.Close()
 	if err != nil {
-		log.Println(err)
+		slog.Error("error in Close", "err", err)
 	}
 }
 

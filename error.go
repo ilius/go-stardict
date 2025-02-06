@@ -1,7 +1,7 @@
 package stardict
 
-import "log"
+import "log/slog"
 
 var ErrorHandler = func(err error) {
-	log.Println(err)
+	slog.Error("error", "err", err)
 }

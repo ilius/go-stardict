@@ -16,8 +16,9 @@ func (wpm WordPrefixMap) Add(term string, termIndex int) {
 		prefix, _ := utf8.DecodeRuneInString(word)
 		if prefix == utf8.RuneError {
 			ErrorHandler(fmt.Errorf(
-				"RuneError from DecodeRuneInString for word: %#v",
+				"RuneError from DecodeRuneInString for word %#v in term %#v",
 				word,
+				term,
 			))
 			continue
 		}

@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -173,9 +173,8 @@ func (d *dictionaryImp) SearchFuzzy(
 
 	dt := time.Since(t1)
 	if dt > time.Millisecond {
-		log.Printf("SearchFuzzy index loop took %v for %#v on %s\n", dt, query, d.DictName())
+		slog.Debug("SearchFuzzy index loop", "dt", dt, "query", query, "dictName", d.DictName())
 	}
-	// log.Printf("Search produced %d results for %#v on %s\n", len(results), query, d.DictName())
 	return results
 }
 
@@ -225,9 +224,8 @@ func (d *dictionaryImp) SearchStartWith(
 
 	dt := time.Since(t1)
 	if dt > time.Millisecond {
-		log.Printf("SearchStartWith index loop took %v for %#v on %s\n", dt, query, d.DictName())
+		slog.Debug("SearchStartWith index loop", "dt", dt, "query", query, "dictName", d.DictName())
 	}
-	// log.Printf("Search produced %d results for %#v on %s\n", len(results), query, d.DictName())
 	return results
 }
 
@@ -291,7 +289,7 @@ func (d *dictionaryImp) SearchRegex(
 	})
 	dt := time.Since(t1)
 	if dt > time.Millisecond {
-		log.Printf("SearchRegex index loop took %v for %#v on %s\n", dt, query, d.DictName())
+		slog.Debug("SearchRegex index loop", "dt", dt, "query", query, "dictName", d.DictName())
 	}
 	return results, nil
 }
@@ -318,7 +316,7 @@ func (d *dictionaryImp) SearchGlob(
 	})
 	dt := time.Since(t1)
 	if dt > time.Millisecond {
-		log.Printf("SearchGlob index loop took %v for %#v on %s\n", dt, query, d.DictName())
+		slog.Debug("SearchGlob index loop", "dt", dt, "query", query, "dictName", d.DictName())
 	}
 	return results, nil
 }
