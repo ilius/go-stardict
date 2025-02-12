@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/gobwas/glob"
+	"github.com/ilius/glob"
 	common "github.com/ilius/go-dict-commons"
 	su "github.com/ilius/go-dict-commons/search_utils"
 	"github.com/ilius/go-stardict/v2/murmur3"
