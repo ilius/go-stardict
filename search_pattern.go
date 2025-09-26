@@ -1,7 +1,6 @@
 package stardict
 
 import (
-	"log/slog"
 	"regexp"
 	"time"
 
@@ -57,9 +56,7 @@ func (d *dictionaryImp) SearchRegex(
 	if err != nil {
 		return nil, err
 	}
-
-	t1 := time.Now()
-	results := d.searchPattern(workerCount, timeout, func(term string) uint8 {
+	return d.searchPattern(workerCount, timeout, func(term string) uint8 {
 		if !re.MatchString(term) {
 			return 0
 		}
@@ -67,12 +64,7 @@ func (d *dictionaryImp) SearchRegex(
 			return 200 - uint8(len(term))
 		}
 		return 180
-	})
-	dt := time.Since(t1)
-	if dt > time.Millisecond {
-		slog.Debug("SearchRegex index loop", "dt", dt, "query", query, "dictName", d.DictName())
-	}
-	return results, nil
+	}), nil
 }
 
 func (d *dictionaryImp) SearchGlob(
@@ -84,9 +76,7 @@ func (d *dictionaryImp) SearchGlob(
 	if err != nil {
 		return nil, err
 	}
-
-	t1 := time.Now()
-	results := d.searchPattern(workerCount, timeout, func(term string) uint8 {
+	return d.searchPattern(workerCount, timeout, func(term string) uint8 {
 		if !pattern.Match(term) {
 			return 0
 		}
@@ -94,10 +84,5 @@ func (d *dictionaryImp) SearchGlob(
 			return 200 - uint8(len(term))
 		}
 		return 180
-	})
-	dt := time.Since(t1)
-	if dt > time.Millisecond {
-		slog.Debug("SearchGlob index loop", "dt", dt, "query", query, "dictName", d.DictName())
-	}
-	return results, nil
+	}), nil
 }

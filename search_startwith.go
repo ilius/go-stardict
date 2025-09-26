@@ -2,7 +2,6 @@ package stardict
 
 import (
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -30,12 +29,8 @@ func (d *dictionaryImp) SearchStartWith(
 		return nil
 	}
 	entryIndexes := idx.byWordPrefix[prefix]
-
-	t1 := time.Now()
-	N := len(entryIndexes)
-
-	results := su.RunWorkers(
-		N,
+	return su.RunWorkers(
+		len(entryIndexes),
 		workerCount,
 		timeout,
 		func(start int, end int) []*common.SearchResultLow {
@@ -54,10 +49,4 @@ func (d *dictionaryImp) SearchStartWith(
 			return results
 		},
 	)
-
-	dt := time.Since(t1)
-	if dt > time.Millisecond {
-		slog.Debug("SearchStartWith index loop", "dt", dt, "query", query, "dictName", d.DictName())
-	}
-	return results
 }

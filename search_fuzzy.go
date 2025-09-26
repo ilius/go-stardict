@@ -1,7 +1,6 @@
 package stardict
 
 import (
-	"log/slog"
 	"strings"
 	"time"
 
@@ -47,9 +46,6 @@ func (d *dictionaryImp) SearchFuzzy(
 	prefix := queryMainWord[0]
 	entryIndexes := idx.byWordPrefix[prefix]
 
-	t1 := time.Now()
-	N := len(entryIndexes)
-
 	args := &su.ScoreFuzzyArgs{
 		Query:          query,
 		QueryRunes:     queryRunes,
@@ -59,8 +55,8 @@ func (d *dictionaryImp) SearchFuzzy(
 		MainWordIndex:  mainWordIndex,
 	}
 
-	results := su.RunWorkers(
-		N,
+	return su.RunWorkers(
+		len(entryIndexes),
 		workerCount,
 		timeout,
 		func(start int, end int) []*common.SearchResultLow {
@@ -80,10 +76,4 @@ func (d *dictionaryImp) SearchFuzzy(
 			return results
 		},
 	)
-
-	dt := time.Since(t1)
-	if dt > time.Millisecond {
-		slog.Debug("SearchFuzzy index loop", "dt", dt, "query", query, "dictName", d.DictName())
-	}
-	return results
 }
