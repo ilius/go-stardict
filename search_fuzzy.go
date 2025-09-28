@@ -20,7 +20,7 @@ func (d *dictionaryImp) SearchFuzzy(
 	// }
 
 	idx := d.idx
-	const minScore = uint8(132)
+	const minScore = uint8(64)
 
 	query = strings.ToLower(strings.TrimSpace(query))
 	queryWords := strings.Split(query, " ")

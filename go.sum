@@ -1,4 +1,4 @@
 github.com/ilius/glob v0.0.0-20250212111036-4c41f838a304 h1:hrjENbAZEBbffGaAhD6Wd4t1pKUp54wXtKQ4FsMXh/4=
 github.com/ilius/glob v0.0.0-20250212111036-4c41f838a304/go.mod h1:hp4bF1pIJfwcFirp8JaYh3xPs6DPQ/yP1BsTkpVNAg8=
-github.com/ilius/go-dict-commons v0.5.3 h1:2yN13VoDyAJ2LuYzD3wu3BJ23CevjKOJhiOkK/YxViM=
-github.com/ilius/go-dict-commons v0.5.3/go.mod h1:nR6Edm1pxnx9paVX+Cp2j8Jj7/L2xR0HchNV1D6slCQ=
+github.com/ilius/go-dict-commons v0.6.0 h1:GCf9LeF1MpyD0d4xlzwoCLenXH08APbpxLdi7sXoq9M=
+github.com/ilius/go-dict-commons v0.6.0/go.mod h1:nR6Edm1pxnx9paVX+Cp2j8Jj7/L2xR0HchNV1D6slCQ=
