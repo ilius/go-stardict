@@ -32,13 +32,13 @@ func Open(dirPathList []string, order map[string]int) ([]common.Dictionary, erro
 
 		dirEntries, err := os.ReadDir(dirPath)
 		if err != nil {
-			go ErrorHandler(err)
+			ErrorHandler(err)
 			continue
 		}
 		for _, fi := range dirEntries {
 			dic, err := checkDirEntry(dirPath, fi)
 			if err != nil {
-				go ErrorHandler(err)
+				ErrorHandler(err)
 				continue
 			}
 			if dic == nil {
