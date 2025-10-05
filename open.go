@@ -105,7 +105,7 @@ func checkDirEntry(parentDir string, entry os.DirEntry) (*dictionaryImp, error) 
 	if filepath.Ext(name) != ifoExt {
 		return nil, nil
 	}
-	slog.Info("Initializing directory", "name", name)
+	slog.Info("Initializing dictionary", "directory", dictDir)
 	dic, err := NewDictionary(
 		dictDir,
 		name[:len(name)-len(ifoExt)],
