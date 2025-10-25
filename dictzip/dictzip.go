@@ -1,236 +1,191 @@
-/*
-Package dictzip provides a reader for files in the random access `dictzip` format.
-
-Note: this is not concurrent-safe, since it calls fp.Seek()
-*/
 package dictzip
 
 import (
-	"compress/flate"
+	"bytes"
+	"compress/zlib"
+	"encoding/binary"
 	"fmt"
 	"io"
-	"sync"
+	"os"
 )
 
-// Reader, This implements the io.ReadSeekCloser interface.
 type Reader struct {
-	fp        io.ReadSeekCloser
-	offsets   []int64
-	blockSize int64
-	lock      sync.Mutex
+	f          *os.File
+	chunkSize  int
+	chunkCount int
+	offsets    []uint32
+	dataStart  int64
 }
 
-func NewReader(rs io.ReadSeekCloser) (*Reader, error) {
-	dz := &Reader{fp: rs}
-
-	_, err := dz.fp.Seek(0, 0)
-	if err != nil {
-		return nil, err
+func NewReader(f *os.File) (*Reader, error) {
+	hdr := make([]byte, 10)
+	if _, err := io.ReadFull(f, hdr); err != nil {
+		return nil, fmt.Errorf("read gzip header: %w", err)
+	}
+	if hdr[0] != 0x1f || hdr[1] != 0x8b {
+		return nil, fmt.Errorf("not a gzip/dictzip file")
+	}
+	if hdr[3]&0x04 == 0 {
+		return nil, fmt.Errorf("missing FEXTRA flag (not dictzip)")
 	}
 
-	metadata := []byte{}
-
-	p := 0
-
-	h := make([]byte, 10)
-	n, err := io.ReadFull(dz.fp, h)
-	if err != nil {
-		return nil, err
+	var xlenBuf [2]byte
+	if _, err := io.ReadFull(f, xlenBuf[:]); err != nil {
+		return nil, fmt.Errorf("read XLEN: %w", err)
 	}
-	p += n
+	xlen := int(binary.LittleEndian.Uint16(xlenBuf[:]))
 
-	if h[0] != 31 || h[1] != 139 {
-		return nil, fmt.Errorf("invalid header: %02X %02X", h[0], h[1])
+	extra := make([]byte, xlen)
+	if _, err := io.ReadFull(f, extra); err != nil {
+		return nil, fmt.Errorf("read FEXTRA: %w", err)
 	}
 
-	if h[2] != 8 {
-		return nil, fmt.Errorf("unknown compression method: %v", h[2])
-	}
-
-	flg := h[3]
-
-	if flg&4 != 0 {
-		h := make([]byte, 2)
-		n, err := io.ReadFull(dz.fp, h)
-		if err != nil {
-			return nil, err
+	var r Reader
+	pos := 0
+	for pos+4 <= len(extra) {
+		si1, si2 := extra[pos], extra[pos+1]
+		subLen := int(binary.LittleEndian.Uint16(extra[pos+2 : pos+4]))
+		pos += 4
+		if pos+subLen > len(extra) {
+			return nil, fmt.Errorf("invalid subfield len")
 		}
-		p += n
-
-		xLen := int(h[0]) + 256*int(h[1])
-		h = make([]byte, xLen)
-		n, err = io.ReadFull(dz.fp, h)
-		if err != nil {
-			return nil, err
-		}
-		p += n
-
-		for q := 0; q < len(h); {
-			si1 := h[q]
-			si2 := h[q+1]
-			ln := int(h[q+2]) + 256*int(h[q+3])
-
-			if si1 == 'R' && si2 == 'A' {
-				metadata = h[q+4 : q+4+ln]
+		if si1 == 'R' && si2 == 'A' {
+			sub := extra[pos : pos+subLen]
+			if len(sub) < 6 {
+				return nil, fmt.Errorf("RA too short (%d)", len(sub))
+			}
+			version := binary.LittleEndian.Uint16(sub[0:2])
+			if version != 1 {
+				return nil, fmt.Errorf("unsupported RA version %d", version)
 			}
 
-			q += 4 + ln
-		}
-
-	}
-
-	// skip file name (8), file comment (16)
-	for _, f := range []byte{8, 16} {
-		if flg&f != 0 {
-			h := make([]byte, 1)
-			for {
-				n, err := io.ReadFull(dz.fp, h)
-				if err != nil {
-					return nil, err
+			// try all known layouts
+			type layout struct {
+				chunkSizeOfs  int
+				chunkSizeLen  int
+				chunkCountOfs int
+				chunkCountLen int
+				offsetStart   int
+			}
+			candidates := []layout{
+				{2, 2, 4, 2, 6},  // GNU
+				{2, 4, 6, 4, 10}, // StarDict
+				{2, 2, 4, 4, 8},  // mixed 8-byte header
+			}
+			var ok bool
+			for _, l := range candidates {
+				if len(sub) < l.offsetStart {
+					continue
 				}
-				p += n
-				if h[0] == 0 {
+				var cs, cc int
+				switch l.chunkSizeLen {
+				case 2:
+					cs = int(binary.LittleEndian.Uint16(sub[l.chunkSizeOfs : l.chunkSizeOfs+2]))
+				case 4:
+					cs = int(binary.LittleEndian.Uint32(sub[l.chunkSizeOfs : l.chunkSizeOfs+4]))
+				}
+				switch l.chunkCountLen {
+				case 2:
+					cc = int(binary.LittleEndian.Uint16(sub[l.chunkCountOfs : l.chunkCountOfs+2]))
+				case 4:
+					cc = int(binary.LittleEndian.Uint32(sub[l.chunkCountOfs : l.chunkCountOfs+4]))
+				}
+				exp := l.offsetStart + 4*(cc+1)
+				if len(sub) >= exp {
+					r.chunkSize, r.chunkCount = cs, cc
+					r.offsets = make([]uint32, cc+1)
+					for i := 0; i <= cc; i++ {
+						r.offsets[i] = binary.LittleEndian.Uint32(
+							sub[l.offsetStart+i*4 : l.offsetStart+4+i*4])
+					}
+					ok = true
 					break
 				}
 			}
+			if !ok {
+				return nil, fmt.Errorf("invalid RA offsets length (len=%d)", len(sub))
+			}
 		}
+		pos += subLen
 	}
 
-	if flg&2 != 0 {
-		h := make([]byte, 2)
-		n, err := io.ReadFull(dz.fp, h)
+	dataStart, err := f.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return nil, err
+	}
+	r.f = f
+	r.dataStart = dataStart
+	return &r, nil
+}
+
+func (r *Reader) ReadAt(p []byte, off int64) (int, error) {
+	if r.f == nil {
+		return 0, fmt.Errorf("reader closed")
+	}
+	if r.chunkSize == 0 {
+		return 0, fmt.Errorf("invalid chunk size")
+	}
+	if off < 0 {
+		return 0, fmt.Errorf("negative offset")
+	}
+	startChunk := int(off / int64(r.chunkSize))
+	if startChunk >= r.chunkCount {
+		return 0, io.EOF
+	}
+	offsetInChunk := int(off % int64(r.chunkSize))
+
+	n := 0
+	for len(p) > 0 && startChunk < r.chunkCount {
+		chunk, err := r.readChunk(startChunk)
 		if err != nil {
-			return nil, err
+			return n, err
 		}
-		p += n
-	}
-
-	if len(metadata) < 6 {
-		return nil, fmt.Errorf("missing dictzip metadata")
-	}
-
-	version := int(metadata[0]) + 256*int(metadata[1])
-
-	if version != 1 {
-		return nil, fmt.Errorf("unknown dictzip version: %v", version)
-	}
-
-	dz.blockSize = int64(metadata[2]) + 256*int64(metadata[3])
-	blockCount := int(metadata[4]) + 256*int(metadata[5])
-
-	dz.offsets = make([]int64, blockCount+1)
-	dz.offsets[0] = int64(p)
-	for i := range blockCount {
-		dz.offsets[i+1] = dz.offsets[i] + int64(metadata[6+2*i]) + 256*int64(metadata[7+2*i])
-	}
-
-	return dz, nil
-}
-
-func (dz *Reader) Close() error {
-	return dz.fp.Close()
-}
-
-func (dz *Reader) ReadAt(p []byte, off int64) (n int, err error) {
-	want := len(p)
-	b, err := dz.Get(off, int64(want))
-	if b != nil {
-		got := len(b)
-		copy(p, b)
-		if want == got {
-			return got, nil
-		} else {
-			return got, err
+		if offsetInChunk >= len(chunk) {
+			startChunk++
+			offsetInChunk = 0
+			continue
 		}
-	} else {
-		return 0, err
+		copied := copy(p, chunk[offsetInChunk:])
+		n += copied
+		p = p[copied:]
+		startChunk++
+		offsetInChunk = 0
 	}
+	if n == 0 {
+		return 0, io.EOF
+	}
+	return n, nil
 }
 
-func (dz *Reader) Get(start, size int64) ([]byte, error) {
-	if size == 0 {
-		return []byte{}, nil
+func (r *Reader) readChunk(i int) ([]byte, error) {
+	if i < 0 || i >= r.chunkCount {
+		return nil, fmt.Errorf("invalid chunk index")
 	}
-
-	if start < 0 || size < 0 {
-		return nil, fmt.Errorf("negative start or size")
+	start := int64(r.offsets[i])
+	end := int64(r.offsets[i+1])
+	if end <= start {
+		return nil, fmt.Errorf("invalid offsets in chunk %d", i)
 	}
-
-	if int(start/dz.blockSize) >= len(dz.offsets) {
-		return nil, fmt.Errorf("start passed end of archive")
+	if _, err := r.f.Seek(r.dataStart+start, io.SeekStart); err != nil {
+		return nil, err
 	}
-
-	start1 := dz.blockSize * (start / dz.blockSize)
-	size1 := size + (start - start1)
-
-	dz.lock.Lock()
-	defer dz.lock.Unlock()
-
-	_, err := dz.fp.Seek(dz.offsets[start/dz.blockSize], 0)
+	comp := make([]byte, end-start)
+	if _, err := io.ReadFull(r.f, comp); err != nil {
+		return nil, err
+	}
+	zr, err := zlib.NewReader(bytes.NewReader(comp))
 	if err != nil {
 		return nil, err
 	}
-	rd := flate.NewReader(dz.fp)
-
-	data := make([]byte, size1)
-	_, err = io.ReadFull(rd, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return data[start-start1:], nil
+	defer zr.Close()
+	return io.ReadAll(zr)
 }
 
-// Start and size in base64 notation, such as used by the `dictunzip` program.
-func (dz *Reader) GetB64(start, size string) ([]byte, error) {
-	start2, err := decode(start)
-	if err != nil {
-		return nil, err
+func (r *Reader) Close() error {
+	if r.f == nil {
+		return nil
 	}
-	size2, err := decode(size)
-	if err != nil {
-		return nil, err
-	}
-	return dz.Get(start2, size2)
-}
-
-// Base64 decoder
-
-var index = []uint64{
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 62, 99, 99, 99, 63,
-	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 99, 99, 99, 99, 99, 99,
-	99, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 99, 99, 99, 99, 99,
-	99, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-}
-
-func decode(val string) (int64, error) {
-	var result uint64
-	var offset uint64
-
-	for i := len(val) - 1; i >= 0; i-- {
-		tmp := index[val[i]]
-		if tmp == 99 {
-			return 0, fmt.Errorf("illegal character in base64 value: %v", val[i:i+1])
-		}
-
-		if (tmp<<offset)>>offset != tmp {
-			return 0, fmt.Errorf("type uint64 cannot store decoded base64 value: %v", val)
-		}
-
-		result |= tmp << offset
-		offset += 6
-	}
-	return int64(result), nil
+	err := r.f.Close()
+	r.f = nil
+	return err
 }
