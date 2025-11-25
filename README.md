@@ -1,4 +1,9 @@
-# GO STARDICT
+
+# 🚨 REPOSITORY MOVED
+
+This project has migrated to **Codeberg** for better alignment with open-source values.
+
+## 👉 New Location: [codeberg.org/ilius/go-stardict](https://codeberg.org/ilius/go-stardict)
 
 To download and install this package run:
 
