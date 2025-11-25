@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"time"
 
+	common "codeberg.org/ilius/go-dict-commons"
+	su "codeberg.org/ilius/go-dict-commons/search_utils"
 	"github.com/ilius/glob"
-	common "github.com/ilius/go-dict-commons"
-	su "github.com/ilius/go-dict-commons/search_utils"
 )
 
 func (d *dictionaryImp) searchPattern(

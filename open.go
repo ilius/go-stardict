@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	common "github.com/ilius/go-dict-commons"
+	common "codeberg.org/ilius/go-dict-commons"
 )
 
 const ifoExt = ".ifo"

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	common "github.com/ilius/go-dict-commons"
-	su "github.com/ilius/go-dict-commons/search_utils"
+	common "codeberg.org/ilius/go-dict-commons"
+	su "codeberg.org/ilius/go-dict-commons/search_utils"
 )
 
 // SearchFuzzy: run a fuzzy search with similarity scores

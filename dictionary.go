@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	common "github.com/ilius/go-dict-commons"
+	common "codeberg.org/ilius/go-dict-commons"
 	"github.com/ilius/go-stardict/v2/murmur3"
 )
 

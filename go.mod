@@ -3,6 +3,6 @@ module github.com/ilius/go-stardict/v2
 go 1.22
 
 require (
+	codeberg.org/ilius/go-dict-commons v0.7.0
 	github.com/ilius/glob v0.0.0-20250212111036-4c41f838a304
-	github.com/ilius/go-dict-commons v0.6.0
 )
